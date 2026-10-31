@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { Appointment, Consultation, Medicine, Patient } from "./data";
 import { initials, sampleMedicines, seedAppointments, seedConsultations, seedPatients } from "./data";
 
-export type Phase = "ready" | "recording" | "paused" | "processing" | "notes" | "prescription";
+export type Phase = "ready" | "recording" | "paused" | "processing" | "notes" | "prescription" | "done";
 
 // Everything an in-progress consultation needs to resume after a reload or the
 // OS killing the tab: the record, where the vet was in the flow, and their edits.

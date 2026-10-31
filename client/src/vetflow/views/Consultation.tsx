@@ -1,29 +1,219 @@
 import { useState } from "react";
-import { AlertCircle, ArrowLeft, ArrowRight, Check, CheckCircle2, ChevronDown, ChevronRight, Download, Mic, Plus, ShieldCheck, Sparkles, X } from "lucide-react";
-import type { Patient, Medicine, Consultation } from "../data";
-import { IconButton, Button, Badge, Avatar, Field, EditableNote } from "../ui";
+import { CalendarPlus, Check, ChevronLeft, ChevronRight, MessageCircle, Pause, Pill, Play, Plus, Printer, Trash2, Upload, X } from "lucide-react";
+import type { Consultation, Medicine, Patient } from "../data";
+import { AllergyChip, patientMeta, SettleWave, Sheet, SpeciesIcon, Wave, whatsappLink } from "../kit";
+import type { Phase } from "../store";
 
-export function ConsultationView({ patients, selectedPatient, patientConsultations, activeConsultation, phase, elapsed, notesDraft, medicinesDraft, onSelectPatient, onStart, onPause, onResume, onStop, onUploadAudio, onSaveNotes, onSaveDraft, onNotesChange, onGoPrescription, onMedicineChange, onAddMedicine, onRemoveMedicine, onApprove, onOpenConsultation, onBack }: { patients: Patient[]; selectedPatient: Patient; patientConsultations: Consultation[]; activeConsultation: Consultation | null; phase: "ready" | "recording" | "paused" | "processing" | "notes" | "prescription"; elapsed: number; notesDraft: Consultation["notes"] | null; medicinesDraft: Medicine[]; onSelectPatient: (id: string, tab?: string) => void; onStart: () => void; onPause: () => void; onResume: () => void; onStop: () => void; onUploadAudio: (file: File) => void; onSaveNotes: () => void; onSaveDraft: () => void; onNotesChange: (value: Consultation["notes"] | null) => void; onGoPrescription: () => void; onMedicineChange: (id: string, field: keyof Medicine, value: string) => void; onAddMedicine: () => void; onRemoveMedicine: (id: string) => void; onApprove: () => void; onOpenConsultation: (consultation: Consultation) => void; onBack: () => void }) {
-  const [patientPicker, setPatientPicker] = useState("");
-  const duration = `${String(Math.floor(elapsed / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")}`;
-  const phaseLabel = phase === "ready" ? "Ready to record" : phase === "recording" ? "Recording consultation" : phase === "paused" ? "Recording paused" : phase === "processing" ? "Analyzing consultation" : phase === "notes" ? "Review clinical notes" : "Review prescription";
-  return <div className="page-stack consultation-page"><div className="page-header"><div><button className="back-link" onClick={onBack}><ArrowLeft size={14} /> Dashboard</button><div className="eyebrow">AI voice consultation</div><h1>New consultation</h1><p>Turn the conversation into a clear, reviewable care record.</p></div><div className="header-actions"><Badge tone="mint"><span className="status-dot green" /> Demo workflow</Badge></div></div><div className="consultation-stepper"><Step number="1" label="Patient" active={phase === "ready" || phase === "recording" || phase === "paused" || phase === "processing"} done={Boolean(activeConsultation?.transcription)} /><Step number="2" label="Voice capture" active={phase === "recording" || phase === "paused" || phase === "processing"} done={Boolean(activeConsultation?.transcription)} /><Step number="3" label="Clinical notes" active={phase === "notes"} done={phase === "prescription"} /><Step number="4" label="Prescription" active={phase === "prescription"} done={Boolean(activeConsultation?.approved)} /></div><div className="consultation-layout"><section className="consultation-main"><div className="card patient-context"><div className="patient-context-main"><Avatar patient={selectedPatient} size="md" /><div><div className="eyebrow">Selected patient</div><h3>{selectedPatient.name} <span>{selectedPatient.id}</span></h3><p>{selectedPatient.species} · {selectedPatient.breed} · {selectedPatient.age} · {selectedPatient.weight}</p></div></div><div className="patient-context-owner"><span>Owner</span><strong>{selectedPatient.owner}</strong><small>{selectedPatient.phone}</small></div><div className="picker-wrap"><button className="text-button" onClick={() => setPatientPicker((value) => value ? "" : "open")}>Change patient <ChevronDown size={13} /></button>{patientPicker && <div className="picker-popover">{patients.map((patient) => <button key={patient.id} onClick={() => { onSelectPatient(patient.id); setPatientPicker(""); }}>{patient.name} · {patient.owner}</button>)}</div>}</div></div>{phase === "notes" || phase === "prescription" ? <DocumentationPanel phase={phase} activeConsultation={activeConsultation} patient={selectedPatient} notesDraft={notesDraft} medicinesDraft={medicinesDraft} onSaveNotes={onSaveNotes} onSaveDraft={onSaveDraft} onNotesChange={onNotesChange} onGoPrescription={onGoPrescription} onMedicineChange={onMedicineChange} onAddMedicine={onAddMedicine} onRemoveMedicine={onRemoveMedicine} onApprove={onApprove} /> : <RecordingPanel phase={phase} phaseLabel={phaseLabel} duration={duration} onStart={onStart} onPause={onPause} onResume={onResume} onStop={onStop} onUploadAudio={onUploadAudio} transcription={activeConsultation?.transcription ?? ""} />}</section><aside className="consultation-aside"><div className="card history-card"><div className="card-heading"><div><div className="eyebrow">Patient context</div><h3>Previous history</h3></div><Badge tone="neutral">{patientConsultations.length} records</Badge></div>{patientConsultations.slice(0, 3).map((consultation) => <button className="history-row" key={consultation.id} onClick={() => onOpenConsultation(consultation)}><div className="history-date"><strong>{consultation.date.split(" ")[0]}</strong><span>{consultation.date.split(" ").slice(1).join(" ")}</span></div><div><strong>{consultation.reason}</strong><span>{consultation.complaint}</span></div><ChevronRight size={14} /></button>)}<div className="privacy-note"><ShieldCheck size={14} /><span>Previous records stay separate. Nothing is overwritten.</span></div></div><div className="card guidance-card"><div className="guidance-icon"><Sparkles size={18} /></div><div><strong>AI documentation guardrails</strong><p>VetFlow only structures what was said. Diagnosis and treatment remain in the veterinarian’s hands.</p></div></div></aside></div></div>;
+const icon = { size: 20, strokeWidth: 1.75 } as const;
+const clock = (seconds: number) => `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+const medLine = (medicine: Medicine) => [medicine.dosage, medicine.frequency, medicine.duration, medicine.route].filter(Boolean).join(" · ");
+
+type Props = {
+  patients: Patient[];
+  patient: Patient;
+  consultation: Consultation;
+  phase: Phase;
+  elapsed: number;
+  notes: Consultation["notes"];
+  medicines: Medicine[];
+  nextUp?: string;
+  onClose: () => void;
+  onSelectPatient: (id: string) => void;
+  onStart: () => void;
+  onPause: () => void;
+  onResume: () => void;
+  onStop: () => void;
+  onDiscard: () => void;
+  onUploadAudio: (file: File) => void;
+  onNotesChange: (notes: Consultation["notes"]) => void;
+  onSaveNotes: () => void;
+  onGoNotes: () => void;
+  onGoPrescription: () => void;
+  onMedicinesChange: (medicines: Medicine[]) => void;
+  onSaveDraft: () => void;
+  onApprove: () => void;
+  onPrint: () => void;
+  onBookFollowUp: () => void;
+  onNext: () => void;
+};
+
+export function ConsultationView(props: Props) {
+  const { phase } = props;
+  if (phase === "done") return <DoneStep {...props} />;
+  if (phase === "notes") return <NotesStep {...props} />;
+  if (phase === "prescription") return <PrescriptionStep {...props} />;
+  return <RecordStep {...props} />;
 }
 
-function Step({ number, label, active, done }: { number: string; label: string; active: boolean; done: boolean }) { return <div className={`step ${active ? "active" : ""} ${done ? "done" : ""}`}><div className="step-number">{done ? <Check size={14} /> : number}</div><span>{label}</span></div>; }
-
-function RecordingPanel({ phase, phaseLabel, duration, onStart, onPause, onResume, onStop, onUploadAudio, transcription }: { phase: string; phaseLabel: string; duration: string; onStart: () => void; onPause: () => void; onResume: () => void; onStop: () => void; onUploadAudio: (file: File) => void; transcription: string }) {
-  const isRecording = phase === "recording";
-  const isPaused = phase === "paused";
-  const isProcessing = phase === "processing";
-  return <div className="card recording-card"><div className="recording-top"><div><div className="eyebrow">Voice capture</div><h2>{isProcessing ? "Analyzing consultation…" : transcription ? "Consultation transcribed" : "Record the consultation"}</h2><p>{isProcessing ? "VetFlow AI is organizing the clinical information. This usually takes a few seconds." : transcription ? "Your transcript is ready for a clinical review." : "Speak naturally. You can pause at any time and review everything before it enters the chart."}</p></div><Badge tone={isProcessing ? "info" : transcription ? "success" : isPaused ? "warning" : isRecording ? "danger" : "neutral"}><span className={`status-dot ${isProcessing || isRecording ? "red" : transcription ? "green" : "grey"}`} /> {isProcessing ? "Processing" : phaseLabel}</Badge></div>{transcription ? <div className="transcription-preview"><div className="transcript-label"><CheckCircle2 size={15} /> Consultation Successfully Transcribed <span>Demo transcript</span></div><p>“{transcription}”</p><div className="transcript-actions"><Button variant="secondary" onClick={() => {}}>Play recording</Button><Button onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })}>Review clinical notes <ArrowRight size={15} /></Button></div></div> : <><div className={`recording-stage ${isRecording ? "is-recording" : ""} ${isPaused ? "is-paused" : ""} ${isProcessing ? "is-processing" : ""}`}><div className="waveform">{Array.from({ length: 32 }).map((_, index) => <i key={index} style={{ height: `${18 + ((index * 17) % 40)}px`, animationDelay: `${index * 0.035}s` }} />)}</div><div className="mic-orb"><div className="mic-halo" /><div className="mic-button"><Mic size={32} /></div></div><strong>{isProcessing ? "Structuring clinical notes" : isRecording ? "Listening…" : isPaused ? "Paused" : "Ready when you are"}</strong><span>{duration} {isRecording || isPaused ? "· recording time" : ""}</span></div><div className="recording-controls">{phase === "ready" && <Button onClick={onStart}><Mic size={17} /> Start recording</Button>}{phase === "recording" && <><Button variant="secondary" onClick={onPause}><span className="pause-bars" /> Pause</Button><Button variant="danger" onClick={onStop}><span className="stop-square" /> Stop & process</Button></>}{phase === "paused" && <><Button onClick={onResume}><Mic size={17} /> Resume recording</Button><Button variant="danger" onClick={onStop}><span className="stop-square" /> Stop & process</Button></>}{phase === "processing" && <Button disabled><span className="button-spinner" /> Analyzing…</Button>}</div><div className="upload-audio"><input id="vetflow-audio-upload" type="file" accept="audio/*" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) onUploadAudio(file); event.currentTarget.value = ""; }} /><label htmlFor="vetflow-audio-upload"><Download size={14} /> Upload audio file</label><span>MP3, WAV, M4A · max 50 MB</span></div></>}</div>;
+function Strip({ patient, changeable, patients, onSelectPatient }: { patient: Patient; changeable?: boolean; patients?: Patient[]; onSelectPatient?: (id: string) => void }) {
+  const [picking, setPicking] = useState(false);
+  const body = <>
+    <span className="lead"><SpeciesIcon species={patient.species} /></span>
+    <span className="rbody"><span className="t1">{patient.name}</span><span className="t2 num">{patientMeta(patient, ["breed", "age", "weight", "owner"])}</span><span><AllergyChip patient={patient} /></span></span>
+  </>;
+  if (!changeable) return <div className="strip">{body}</div>;
+  return <>
+    <button className="strip" onClick={() => setPicking(true)} aria-label={`Patient: ${patient.name}. Change patient`}>{body}<span className="link" style={{ fontSize: 13 }}>Change</span></button>
+    {picking && <Sheet title="Choose patient" onClose={() => setPicking(false)}>
+      <ul className="list">{patients?.map((item) => <li key={item.id}><button className="row" onClick={() => { onSelectPatient?.(item.id); setPicking(false); }}>
+        <span className="lead"><SpeciesIcon species={item.species} /></span>
+        <span className="rbody"><span className="t1">{item.name}</span><span className="t2">{patientMeta(item)}</span></span>
+        {item.id === patient.id && <Check size={18} strokeWidth={2} style={{ color: "var(--brand)" }} />}
+      </button></li>)}</ul>
+    </Sheet>}
+  </>;
 }
 
-function DocumentationPanel({ phase, activeConsultation, patient, notesDraft, medicinesDraft, onSaveNotes, onSaveDraft, onNotesChange, onGoPrescription, onMedicineChange, onAddMedicine, onRemoveMedicine, onApprove }: { phase: "notes" | "prescription"; activeConsultation: Consultation | null; patient: Patient; notesDraft: Consultation["notes"] | null; medicinesDraft: Medicine[]; onSaveNotes: () => void; onSaveDraft: () => void; onNotesChange: (value: Consultation["notes"] | null) => void; onGoPrescription: () => void; onMedicineChange: (id: string, field: keyof Medicine, value: string) => void; onAddMedicine: () => void; onRemoveMedicine: (id: string) => void; onApprove: () => void }) {
-  if (phase === "prescription") return <PrescriptionEditor medicines={medicinesDraft} onMedicineChange={onMedicineChange} onAddMedicine={onAddMedicine} onRemoveMedicine={onRemoveMedicine} onApprove={onApprove} onSaveDraft={onSaveDraft} />;
-  const update = (field: keyof Consultation["notes"], value: string) => notesDraft && onNotesChange({ ...notesDraft, [field]: value });
-  return <div className="card documentation-card"><div className="documentation-header"><div><div className="eyebrow">AI-generated documentation</div><h2>Review clinical notes</h2><p>VetFlow extracted these details from the recording. Edit anything before saving.</p></div><Badge tone="mint"><Sparkles size={13} /> Extracted from speech</Badge></div><div className="source-note"><AlertCircle size={15} /><span>Diagnosis and treatment are intentionally left for doctor confirmation. VetFlow never invents clinical findings.</span></div><div className="editable-notes"><EditableNote label="Patient" value={activeConsultation ? `${patient.name} · ${patient.age} · ${patient.breed} · ${patient.weight}` : ""} onChange={() => {}} readOnly /><EditableNote label="Chief complaint" value={notesDraft?.complaint ?? ""} onChange={(value) => update("complaint", value)} /><EditableNote label="Duration" value={notesDraft?.duration ?? ""} onChange={(value) => update("duration", value)} /><EditableNote label="Clinical examination" value={notesDraft?.examination ?? ""} onChange={(value) => update("examination", value)} /><EditableNote label="Diagnosis" value={notesDraft?.diagnosis ?? ""} onChange={(value) => update("diagnosis", value)} hint="Doctor confirmation" /><EditableNote label="Treatment plan" value={notesDraft?.treatment ?? ""} onChange={(value) => update("treatment", value)} /><EditableNote label="Follow-up" value={notesDraft?.followUp ?? ""} onChange={(value) => update("followUp", value)} /></div><div className="documentation-footer"><span><ShieldCheck size={14} /> Review required before this becomes part of the chart.</span><div><Button variant="secondary" onClick={onSaveNotes}>Save notes</Button><Button onClick={() => { onSaveNotes(); onGoPrescription(); }}>Continue to prescription <ArrowRight size={15} /></Button></div></div></div>;
+function Header({ step, title, onBack, onClose }: { step: number; title?: string; onBack?: () => void; onClose?: () => void }) {
+  return <header className="subbar">
+    {onBack ? <button className="ibtn" aria-label="Back" onClick={onBack}><ChevronLeft size={24} strokeWidth={1.75} /></button> : <button className="ibtn" aria-label="Close consultation (draft is saved)" onClick={onClose}><X size={24} strokeWidth={1.75} /></button>}
+    <span className="ttl">{title}</span>
+    <span className="stepno num">{step} of 3</span>
+  </header>;
 }
 
-function PrescriptionEditor({ medicines, onMedicineChange, onAddMedicine, onRemoveMedicine, onApprove, onSaveDraft }: { medicines: Medicine[]; onMedicineChange: (id: string, field: keyof Medicine, value: string) => void; onAddMedicine: () => void; onRemoveMedicine: (id: string) => void; onApprove: () => void; onSaveDraft: () => void }) { return <div className="card prescription-editor"><div className="documentation-header"><div><div className="eyebrow">Automatic prescription extraction</div><h2>Review prescription</h2><p>Fictional demonstration entries extracted for your review. Nothing is final until you approve it.</p></div><Badge tone="warning">Draft · needs approval</Badge></div><div className="source-note"><AlertCircle size={15} /><span>These are fictional demo medicines, not treatment recommendations.</span></div><div className="medicine-list">{medicines.map((medicine, index) => <div className="medicine-card" key={medicine.id}><div className="medicine-card-heading"><div className="medicine-number">{String(index + 1).padStart(2, "0")}</div><div><strong>{medicine.name || "New medicine"}</strong><span>Medicine {index + 1} · extracted from consultation</span></div>{medicines.length > 1 && <IconButton label="Remove medicine" onClick={() => onRemoveMedicine(medicine.id)}><X size={16} /></IconButton>}</div><div className="medicine-fields"><Field label="Medicine name" value={medicine.name} onChange={(value) => onMedicineChange(medicine.id, "name", value)} /><Field label="Strength / concentration" value={medicine.strength} onChange={(value) => onMedicineChange(medicine.id, "strength", value)} /><Field label="Dosage" value={medicine.dosage} onChange={(value) => onMedicineChange(medicine.id, "dosage", value)} /><Field label="Route" value={medicine.route} onChange={(value) => onMedicineChange(medicine.id, "route", value)} /><Field label="Frequency" value={medicine.frequency} onChange={(value) => onMedicineChange(medicine.id, "frequency", value)} /><Field label="Duration" value={medicine.duration} onChange={(value) => onMedicineChange(medicine.id, "duration", value)} /><Field label="Special instructions" value={medicine.instructions} onChange={(value) => onMedicineChange(medicine.id, "instructions", value)} wide /></div></div>)}</div><button className="add-medicine" onClick={onAddMedicine}><Plus size={15} /> Add medicine</button><div className="prescription-footer"><span><ShieldCheck size={14} /> Final approval updates the patient history.</span><div><Button variant="secondary" onClick={onSaveDraft}>Save as draft</Button><Button onClick={onApprove}><Check size={16} /> Approve prescription</Button></div></div></div>; }
+function RecordStep({ patients, patient, phase, elapsed, onClose, onSelectPatient, onStart, onPause, onResume, onStop, onDiscard, onUploadAudio }: Props) {
+  const recording = phase === "recording";
+  const paused = phase === "paused";
+  const processing = phase === "processing";
+  const active = recording || paused;
+  return <div className="v2 flow">
+    <Header step={1} onClose={onClose} />
+    <Strip patient={patient} changeable={phase === "ready"} patients={patients} onSelectPatient={onSelectPatient} />
+    <div className="stage">
+      <div className={`clock num ${phase === "ready" ? "idle" : ""}`} role="timer" aria-label={`${elapsed} seconds`}>{clock(elapsed)}</div>
+      <div className="state" aria-live="polite">
+        {phase === "ready" && <p className="hint">Speak as you examine. Notes are drafted for your review.</p>}
+        {recording && <span className="recpill">Recording</span>}
+        {paused && <span className="recpill paused">Paused</span>}
+        {processing && <span className="recpill busy">Drafting notes…</span>}
+      </div>
+      {phase === "ready" && <div className="idle-line" aria-hidden="true" />}
+      {active && <Wave live={recording} />}
+      {processing && <div className="progress" aria-hidden="true" />}
+    </div>
+    {phase === "ready" && <div className="controls col">
+      <div className="big"><button className="go" aria-label="Start recording" onClick={onStart}><i /></button>Record</div>
+      <label className="btn ghost upload"><input type="file" accept="audio/*" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) onUploadAudio(file); event.currentTarget.value = ""; }} /><Upload {...icon} />Upload audio</label>
+    </div>}
+    {active && <div className="controls">
+      <div className="side">{recording ? <button className="ibtn" aria-label="Pause recording" onClick={onPause}><Pause {...icon} /></button> : <button className="ibtn" aria-label="Resume recording" onClick={onResume}><Play {...icon} /></button>}{recording ? "Pause" : "Resume"}</div>
+      <div className="big"><button className="stop" aria-label="Stop and draft notes" onClick={onStop}><i /></button>Stop</div>
+      <div className="side"><button className="ibtn" aria-label="Discard recording" onClick={() => { if (window.confirm("Discard this recording?")) onDiscard(); }}><Trash2 {...icon} /></button>Discard</div>
+    </div>}
+    {processing && <div className="controls" style={{ visibility: "hidden" }} aria-hidden="true"><div className="big"><button className="stop" tabIndex={-1}><i /></button>Stop</div></div>}
+  </div>;
+}
 
+const noteFields: Array<{ key: keyof Consultation["notes"]; label: string }> = [
+  { key: "complaint", label: "Chief complaint" },
+  { key: "duration", label: "Duration" },
+  { key: "examination", label: "Examination" },
+  { key: "diagnosis", label: "Diagnosis" },
+  { key: "treatment", label: "Treatment plan" },
+  { key: "followUp", label: "Follow-up" },
+];
+
+function NotesStep({ patient, consultation, elapsed, notes, onClose, onNotesChange, onSaveNotes, onGoPrescription }: Props) {
+  const diagnosisUnconfirmed = /pending/i.test(notes.diagnosis) || !notes.diagnosis.trim();
+  return <div className="v2 flow">
+    <Header step={2} title="Review notes" onClose={onClose} />
+    <Strip patient={patient} />
+    <details className="transcript"><summary><span className="num">Transcript · {clock(elapsed)}</span><ChevronRight size={18} /></summary><p>{consultation.transcription}</p></details>
+    <div className="note-fields">{noteFields.map((field) => {
+      const value = notes[field.key];
+      const fromTranscript = value && consultation.notes[field.key] === value;
+      return <label key={field.key} className={`nfield ${field.key === "diagnosis" && diagnosisUnconfirmed ? "confirm" : ""}`}>
+        <span>{field.label}{field.key === "diagnosis" && diagnosisUnconfirmed ? <em style={{ color: "var(--warn)" }}>Needs your confirmation</em> : fromTranscript ? <em>from transcript</em> : null}</span>
+        <textarea rows={2} value={value} placeholder="Not mentioned" onChange={(event) => onNotesChange({ ...notes, [field.key]: event.target.value })} />
+      </label>;
+    })}</div>
+    <div className="actionbar"><button className="btn lg secondary" onClick={onSaveNotes}>Save</button><button className="btn lg primary" onClick={() => { onSaveNotes(); onGoPrescription(); }}>Next: Prescription</button></div>
+  </div>;
+}
+
+const choice = {
+  dosage: ["½ tablet", "1 tablet", "2 tablets", "5 ml"],
+  route: ["Oral", "SC", "IM", "IV", "Topical"],
+  frequency: ["Once daily", "Twice daily", "Three times daily"],
+  duration: ["3 days", "5 days", "7 days", "10 days"],
+};
+const choiceLabel: Record<string, string> = { "Once daily": "SID", "Twice daily": "BID", "Three times daily": "TID", "3 days": "3 d", "5 days": "5 d", "7 days": "7 d", "10 days": "10 d" };
+
+function PrescriptionStep({ patient, notes, medicines, consultation, onGoNotes, onMedicinesChange, onSaveDraft, onApprove }: Props) {
+  const [editing, setEditing] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const current = medicines.find((medicine) => medicine.id === editing);
+  const update = (id: string, field: keyof Medicine, value: string) => onMedicinesChange(medicines.map((medicine) => medicine.id === id ? { ...medicine, [field]: value } : medicine));
+  const add = () => { const id = `med-${Date.now()}`; onMedicinesChange([...medicines, { id, name: "", strength: "", dosage: "1 tablet", route: "Oral", frequency: "Twice daily", duration: "5 days", instructions: "" }]); setEditing(id); };
+  return <div className="v2 flow">
+    <Header step={3} title="Prescription" onBack={onGoNotes} />
+    <Strip patient={patient} />
+    <dl className="dx"><dt>Diagnosis</dt><dd>{notes.diagnosis || "Not recorded"}</dd></dl>
+    <div className="sec-h"><h2>Medicines</h2><span className="meta num">{medicines.length}</span></div>
+    <ul className="list tint">
+      {medicines.map((medicine) => <li key={medicine.id}><button className="row" onClick={() => setEditing(medicine.id)}>
+        <span className="lead"><Pill {...icon} /></span>
+        <span className="rbody"><span className="t1">{[medicine.name || "New medicine", medicine.strength].filter(Boolean).join(" ")}</span><span className="t2 num">{medLine(medicine)}</span></span>
+        <ChevronRight size={16} className="chev" />
+      </button></li>)}
+      <li><button className="row add-row" onClick={add}><span className="lead"><Plus {...icon} /></span>Add medicine</button></li>
+    </ul>
+    {notes.treatment && <><div className="sec-h"><h2>Advice</h2></div><p className="note">{notes.treatment}{notes.followUp ? `. Follow-up ${notes.followUp.toLowerCase()}.` : ""}</p></>}
+    <div className="draft-line"><span className="status warn">Draft · not approved</span>{consultation.status === "Draft" && <span className="meta">Saved</span>}</div>
+    <div className="actionbar"><button className="btn lg secondary" onClick={onSaveDraft}>Save draft</button><button className="btn lg primary" onClick={() => setConfirming(true)}><Check {...icon} />Approve</button></div>
+
+    {current && <Sheet title="Edit medicine" onClose={() => setEditing(null)}>
+      <label className="sfield"><span>Name</span><input value={current.name} autoFocus={!current.name} autoComplete="off" onChange={(event) => update(current.id, "name", event.target.value)} /></label>
+      <label className="sfield"><span>Strength</span><input value={current.strength} autoComplete="off" placeholder="e.g. 250 mg" onChange={(event) => update(current.id, "strength", event.target.value)} /></label>
+      {(Object.keys(choice) as Array<keyof typeof choice>).map((field) => <ChoiceGroup key={field} label={field === "dosage" ? "Dose" : field[0].toUpperCase() + field.slice(1)} options={choice[field]} value={current[field]} onChange={(value) => update(current.id, field, value)} />)}
+      <label className="sfield" style={{ paddingTop: 14 }}><span>Instructions</span><input value={current.instructions} autoComplete="off" placeholder="e.g. Give after food" onChange={(event) => update(current.id, "instructions", event.target.value)} /></label>
+      <div className="actionbar">
+        <button className="btn lg danger fit" onClick={() => { onMedicinesChange(medicines.filter((medicine) => medicine.id !== current.id)); setEditing(null); }}><Trash2 {...icon} />Remove</button>
+        <button className="btn lg primary" onClick={() => setEditing(null)}>Done</button>
+      </div>
+    </Sheet>}
+
+    {confirming && <Sheet title="Approve prescription?" onClose={() => setConfirming(false)}>
+      <ul className="meds" style={{ border: 0 }}>{medicines.length ? medicines.map((medicine) => <li key={medicine.id}><span>{[medicine.name, medicine.strength].filter(Boolean).join(" ")}</span><span className="d num">{medLine(medicine)}</span></li>) : <li><span>No medicines</span></li>}</ul>
+      <p className="hint" style={{ maxWidth: "none", padding: "8px 16px 0", textAlign: "left", fontSize: 13 }}>Approving adds this to {patient.name}’s record.</p>
+      <div className="actionbar"><button className="btn lg secondary" onClick={() => setConfirming(false)}>Keep editing</button><button className="btn lg primary" onClick={() => { setConfirming(false); onApprove(); }}>Approve</button></div>
+    </Sheet>}
+  </div>;
+}
+
+function ChoiceGroup({ label, options, value, onChange }: { label: string; options: string[]; value: string; onChange: (value: string) => void }) {
+  const custom = !!value && !options.includes(value);
+  const [other, setOther] = useState(custom);
+  return <div className="grp-c">
+    <span className="grp-l">{label}</span>
+    <div className="opts">
+      {options.map((option) => <button key={option} className="opt num" aria-pressed={value === option && !other} onClick={() => { setOther(false); onChange(option); }}>{choiceLabel[option] ?? option}</button>)}
+      <button className="opt" aria-pressed={other} onClick={() => setOther(true)} style={{ color: other ? undefined : "var(--ink-2)" }}>Other</button>
+    </div>
+    {other && <input className="opt-input" value={value} autoFocus aria-label={`${label}, custom`} onChange={(event) => onChange(event.target.value)} />}
+  </div>;
+}
+
+function DoneStep({ patient, consultation, medicines, nextUp, onClose, onPrint, onBookFollowUp, onNext }: Props) {
+  const rx = `RX-${consultation.id.split("-").pop()}`;
+  const summary = `${patient.name}: prescription ${rx} from Vetspring Animal Hospital, ${consultation.date}.\n${medicines.map((medicine) => `• ${[medicine.name, medicine.strength].filter(Boolean).join(" ")}: ${medLine(medicine)}${medicine.instructions ? ` (${medicine.instructions})` : ""}`).join("\n")}${consultation.notes.followUp ? `\nFollow-up: ${consultation.notes.followUp}.` : ""}`;
+  return <div className="v2 flow">
+    <header className="subbar"><span className="ttl" /><button className="ibtn" aria-label="Close and return to Today" onClick={onClose}><X size={24} strokeWidth={1.75} /></button></header>
+    <section className="top">
+      <span className="mark"><Check size={24} strokeWidth={2} /></span>
+      <h1>Prescription approved</h1>
+      <p className="num">{patient.name} · {patient.owner} · {consultation.date}, {consultation.time} · {rx}</p>
+    </section>
+    <SettleWave />
+    <div className="sec-h" style={{ paddingTop: 20 }}><h2>Medicines</h2><span className="meta num">{medicines.length}</span></div>
+    {medicines.length ? <ul className="meds">{medicines.map((medicine) => <li key={medicine.id}><span>{[medicine.name, medicine.strength].filter(Boolean).join(" ")}</span><span className="d num">{[medicine.dosage, medicine.frequency, medicine.duration].filter(Boolean).join(" · ")}</span></li>)}</ul> : <p className="empty">No medicines prescribed.</p>}
+    <div className="sec-h"><h2>Next steps</h2></div>
+    <ul className="list tint">
+      {patient.phone !== "—" && <li><a className="row s" href={whatsappLink(patient.phone, summary)} target="_blank" rel="noreferrer"><span className="lead"><MessageCircle {...icon} /></span><span className="rbody"><span className="t1">Share with owner</span><span className="t2">WhatsApp · {patient.owner}</span></span><ChevronRight size={16} className="chev" /></a></li>}
+      <li><button className="row s" onClick={onBookFollowUp}><span className="lead"><CalendarPlus {...icon} /></span><span className="rbody"><span className="t1">Book follow-up</span><span className="t2">{consultation.notes.followUp || "Choose a time"}</span></span><ChevronRight size={16} className="chev" /></button></li>
+      <li><button className="row s" onClick={onPrint}><span className="lead"><Printer {...icon} /></span><span className="rbody"><span className="t1">Print</span></span><ChevronRight size={16} className="chev" /></button></li>
+    </ul>
+    <div className="actionbar"><button className="btn lg primary" onClick={onNext}>{nextUp ? `Next patient · ${nextUp}` : "Back to Today"}<ChevronRight {...icon} /></button></div>
+  </div>;
+}

@@ -1,27 +1,78 @@
-import { useState } from "react";
-import type { LucideIcon } from "lucide-react";
-import { ArrowRight, CalendarDays, ChevronRight, ClipboardList, Filter, HeartPulse, Mic, MoreHorizontal, Phone, Search, ShieldCheck, Stethoscope, UserPlus } from "lucide-react";
-import type { Patient, Consultation } from "../data";
-import { initials, speciesOptions } from "../data";
-import { IconButton, Button, Badge, Avatar, StatusBadge, EmptyState } from "../ui";
+import { ChevronLeft, ChevronRight, FileText, MessageCircle, Phone, Search, Stethoscope, UserPlus } from "lucide-react";
+import type { Consultation, Patient } from "../data";
+import { AllergyChip, hasAllergy, patientMeta, SpeciesIcon, statusTone, whatsappLink } from "../kit";
 
-export function PatientsView({ patients, selectedPatient, patientSearch, setPatientSearch, speciesFilter, setSpeciesFilter, onRegister, onOpenPatient, onNewConsultation, profileTab, setProfileTab, consultations, onOpenConsultation }: { patients: Patient[]; selectedPatient?: Patient; patientSearch: string; setPatientSearch: (value: string) => void; speciesFilter: string; setSpeciesFilter: (value: string) => void; onRegister: () => void; onOpenPatient: (id: string, tab?: string) => void; onNewConsultation: (patient?: Patient) => void; profileTab: string; setProfileTab: (value: string) => void; consultations: Consultation[]; onOpenConsultation: (consultation: Consultation) => void }) {
-  const [showProfile, setShowProfile] = useState(true);
-  const tabs = ["Overview", "Medical History", "Consultations", "Prescriptions", "Vaccinations", "Documents"];
-  return <div className="page-stack"><div className="page-header"><div><div className="eyebrow">Patient management</div><h1>Patients</h1><p>One clear record for every animal in your care.</p></div><Button onClick={onRegister}><UserPlus size={16} /> Register patient</Button></div>{showProfile ? <div className={`patient-workspace ${selectedPatient ? "" : "no-selection"}`}><section className="patient-directory card"><div className="directory-toolbar"><div className="search-field"><Search size={16} /><input value={patientSearch} onChange={(event) => setPatientSearch(event.target.value)} placeholder="Search by patient, owner, or ID" /></div><div className="filter-select"><Filter size={14} /><select value={speciesFilter} onChange={(event) => setSpeciesFilter(event.target.value)}><option>All species</option>{speciesOptions.map((species) => <option key={species}>{species}</option>)}</select></div><IconButton label="More filters"><MoreHorizontal size={17} /></IconButton></div><div className="directory-meta"><span>{patients.length} visible patients</span><span><span className="status-dot green" /> Sample data</span></div><div className="patient-table-wrap"><table className="patient-table"><thead><tr><th>Patient</th><th>Species & breed</th><th>Age / sex</th><th>Owner</th><th>Last consultation</th><th>Status</th><th /></tr></thead><tbody>{patients.map((patient) => <tr key={patient.id} className={patient.id === selectedPatient?.id ? "selected-row" : ""} onClick={() => onOpenPatient(patient.id)}><td><div className="table-patient"><Avatar patient={patient} size="sm" /><div><strong>{patient.name}</strong><span>{patient.id}</span></div></div></td><td><strong>{patient.species}</strong><span className="cell-subtle">{patient.breed}</span></td><td><strong>{patient.age}</strong><span className="cell-subtle">{patient.gender} · {patient.weight}</span></td><td><strong>{patient.owner}</strong><span className="cell-subtle">{patient.phone}</span></td><td>{patient.lastVisit}</td><td><Badge tone={patient.status === "Active" ? "success" : "neutral"}>{patient.status}</Badge></td><td><ChevronRight size={15} className="row-chevron" /></td></tr>)}</tbody></table>{patients.length === 0 && <EmptyState title="No patients found" description="Try another search or filter." />}</div></section><section className="patient-profile card">{selectedPatient ? <><div className="profile-header"><div className="profile-identity"><Avatar patient={selectedPatient} size="lg" /><div><div className="profile-kicker"><Badge tone="success">Active patient</Badge><span>{selectedPatient.id}</span></div><h2>{selectedPatient.name}</h2><p>{selectedPatient.species} · {selectedPatient.breed} · {selectedPatient.age}</p></div></div><div className="profile-actions"><IconButton label="More actions"><MoreHorizontal size={17} /></IconButton><Button variant="secondary" onClick={() => onNewConsultation(selectedPatient)}><Mic size={15} /> New consultation</Button></div></div><div className="owner-strip"><div className="owner-avatar">{initials(selectedPatient.owner)}</div><div><span>Owner</span><strong>{selectedPatient.owner}</strong></div><div className="owner-contact"><Phone size={14} /> {selectedPatient.phone}</div><div className="owner-contact"><CalendarDays size={14} /> Last visit {selectedPatient.lastVisit}</div></div><div className="profile-tabs">{tabs.map((tab) => <button className={profileTab === tab ? "active" : ""} key={tab} onClick={() => setProfileTab(tab)}>{tab}</button>)}</div>{profileTab === "Overview" && <ProfileOverview patient={selectedPatient} consultations={consultations} onOpenConsultation={onOpenConsultation} />}{profileTab === "Medical History" && <MedicalHistory consultations={consultations} onOpenConsultation={onOpenConsultation} />}{profileTab === "Consultations" && <ConsultationMiniList consultations={consultations} onOpenConsultation={onOpenConsultation} />}{profileTab === "Prescriptions" && <PrescriptionMiniList consultations={consultations} onOpenConsultation={onOpenConsultation} />}{["Vaccinations", "Documents"].includes(profileTab) && <EmptyState title={`${profileTab} are ready for your workflow`} description="This demo module is prepared for the next phase of the clinic record." />}</> : <EmptyState title="Select a patient" description="Choose a patient from the directory to view their record." />}</section></div> : <section className="card directory-only"><div className="card-heading"><div><div className="eyebrow">Patient directory</div><h3>Search all patients</h3></div><button className="text-button" onClick={() => setShowProfile(true)}>Open profile panel</button></div></section>}</div>;
+const icon = { size: 20, strokeWidth: 1.75 } as const;
+export const speciesChips = [{ key: "All", label: "All" }, { key: "Dog", label: "Dogs" }, { key: "Cat", label: "Cats" }, { key: "Other", label: "Other" }];
+export const matchesSpecies = (patient: Patient, filter: string) => filter === "All" || (filter === "Other" ? patient.species !== "Dog" && patient.species !== "Cat" : patient.species === filter);
+const parseDate = (value: string) => { const time = Date.parse(value); return Number.isNaN(time) ? 0 : time; };
+const shortDate = (value: string) => value.replace(/ \d{4}$/, "");
+
+export function PatientsView({ patients, allPatients, selectedPatient, patientSearch, setPatientSearch, speciesFilter, setSpeciesFilter, onRegister, onOpenPatient, onBack, onNewConsultation, profileTab, setProfileTab, consultations, onOpenConsultation }: { patients: Patient[]; allPatients: Patient[]; selectedPatient?: Patient; patientSearch: string; setPatientSearch: (value: string) => void; speciesFilter: string; setSpeciesFilter: (value: string) => void; onRegister: () => void; onOpenPatient: (id: string) => void; onBack: () => void; onNewConsultation: (patient: Patient) => void; profileTab: string; setProfileTab: (value: string) => void; consultations: Consultation[]; onOpenConsultation: (consultation: Consultation) => void }) {
+  const sorted = [...patients].sort((a, b) => parseDate(b.lastVisit) - parseDate(a.lastVisit));
+  return <div className={`v2 wide pt-split ${selectedPatient ? "has-record" : ""}`}>
+    <section className="pt-list">
+      <header className="page-title"><h1>Patients</h1><button className="ibtn" aria-label="Register patient" onClick={onRegister}><UserPlus size={24} strokeWidth={1.75} /></button></header>
+      <label className="search"><Search {...icon} /><input type="search" inputMode="search" autoComplete="off" value={patientSearch} onChange={(event) => setPatientSearch(event.target.value)} placeholder="Name, owner, phone or ID" aria-label="Search patients" /></label>
+      <div className="chips" role="group" aria-label="Species">{speciesChips.map((chip) => <button key={chip.key} className="fchip" aria-pressed={speciesFilter === chip.key} onClick={() => setSpeciesFilter(chip.key)}><span>{chip.label} <b className="num">{allPatients.filter((patient) => matchesSpecies(patient, chip.key)).length}</b></span></button>)}</div>
+      <h2 className="grp">{patientSearch ? `${sorted.length} ${sorted.length === 1 ? "match" : "matches"}` : "Seen recently"}</h2>
+      {sorted.length ? <ul className="list">{sorted.map((patient) => <li key={patient.id}><button className="row" aria-current={patient.id === selectedPatient?.id ? "true" : undefined} onClick={() => onOpenPatient(patient.id)} style={patient.id === selectedPatient?.id ? { background: "var(--brand-tint)" } : undefined}>
+        <span className="lead"><SpeciesIcon species={patient.species} /></span>
+        <span className="rbody"><span className="t1">{patient.name}</span><span className="t2">{hasAllergy(patient) && <span style={{ color: "var(--warn)", fontWeight: 600 }}>Allergy · </span>}{patientMeta(patient)}</span></span>
+        <span className="trail num">{shortDate(patient.lastVisit)}</span>
+      </button></li>)}</ul> : <p className="empty">No patients match “{patientSearch}”. <button className="link" onClick={onRegister}>Register a patient</button></p>}
+    </section>
+    <section className="pt-record">{selectedPatient && <PatientRecord key={selectedPatient.id} patient={selectedPatient} consultations={consultations} tab={profileTab} setTab={setProfileTab} onBack={onBack} onNewConsultation={() => onNewConsultation(selectedPatient)} onOpenConsultation={onOpenConsultation} />}</section>
+  </div>;
 }
 
-function ProfileOverview({ patient, consultations, onOpenConsultation }: { patient: Patient; consultations: Consultation[]; onOpenConsultation: (consultation: Consultation) => void }) {
-  return <div className="profile-body"><div className="profile-stat-row"><ProfileStat label="Current weight" value={patient.weight} /><ProfileStat label="Total consultations" value={String(consultations.length).padStart(2, "0")} /><ProfileStat label="Upcoming follow-up" value={patient.followUp} /><ProfileStat label="Record status" value="Active" /></div><div className="profile-columns"><div><div className="subheading"><h3>Clinical snapshot</h3><span>Updated today</span></div><div className="clinical-list"><ClinicalLine label="Known allergies" value={patient.allergies} icon={ShieldCheck} /><ClinicalLine label="Existing conditions" value={patient.conditions} icon={HeartPulse} /><ClinicalLine label="Current medications" value={patient.medications} icon={ClipboardList} /></div></div><div><div className="subheading"><h3>Medical timeline</h3><button className="text-button">View all <ArrowRight size={13} /></button></div><div className="timeline">{consultations.slice(0, 3).map((consultation, index) => <button key={consultation.id} className="timeline-item" onClick={() => onOpenConsultation(consultation)}><div className={`timeline-dot ${index === 0 ? "current" : ""}`} /><div><strong>{consultation.date}</strong><span>{consultation.reason}</span><small>{consultation.complaint}</small></div><ChevronRight size={14} /></button>)}</div></div></div></div>;
+function PatientRecord({ patient, consultations, tab, setTab, onBack, onNewConsultation, onOpenConsultation }: { patient: Patient; consultations: Consultation[]; tab: string; setTab: (tab: string) => void; onBack: () => void; onNewConsultation: () => void; onOpenConsultation: (consultation: Consultation) => void }) {
+  const history = [...consultations].sort((a, b) => parseDate(b.date) - parseDate(a.date));
+  const last = history[0];
+  const prescriptions = history.filter((consultation) => consultation.medicines.length > 0);
+  const details = [patient.colour, patient.microchip && `Chip ${patient.microchip}`].filter((value) => value && value !== "—").join(" · ");
+  return <div className="v2 with-tabbar v2-enter" style={{ display: "flex", flexDirection: "column", minHeight: "100%" }}>
+    <header className="subbar"><button className="ibtn back-desktop-hide" aria-label="Back to Patients" onClick={onBack}><ChevronLeft size={24} strokeWidth={1.75} /></button><span className="ttl" /></header>
+    <section className="hdr">
+      <span className="lead"><SpeciesIcon species={patient.species} size={24} /></span>
+      <div className="rbody">
+        <h1>{patient.name}</h1>
+        <p className="t2 num" style={{ margin: 0 }}>{patientMeta(patient, ["breed", "sex", "age", "weight"])}</p>
+        <p className="id num" style={{ margin: "2px 0 0" }}>{patient.id}</p>
+        <div><AllergyChip patient={patient} /></div>
+      </div>
+    </section>
+
+    <ul className="list owner"><li><div className="row s">
+      <span className="rbody"><span className="t1">{patient.owner}</span><span className="t2 num">Owner · {patient.phone}</span></span>
+      {patient.phone !== "—" && <span className="acts">
+        <a className="ibtn outline" href={`tel:${patient.phone}`} aria-label={`Call ${patient.owner}`}><Phone {...icon} /></a>
+        <a className="ibtn outline" href={whatsappLink(patient.phone)} target="_blank" rel="noreferrer" aria-label={`WhatsApp ${patient.owner}`}><MessageCircle {...icon} /></a>
+      </span>}
+    </div></li></ul>
+
+    <div className="tabs" role="tablist">{["Summary", "History", "Prescriptions"].map((name) => <button key={name} role="tab" aria-selected={tab === name} onClick={() => setTab(name)}>{name}{name === "History" && history.length ? ` · ${history.length}` : ""}</button>)}</div>
+
+    {tab === "Summary" && <dl className="kv">
+      {last && <div><dt className="num">Last visit · {shortDate(last.date)}</dt><dd>{last.reason}<small>{last.notes.complaint}{last.notes.followUp ? ` · Follow-up ${last.notes.followUp.toLowerCase()}` : ""}</small></dd></div>}
+      <div><dt>Ongoing</dt><dd>{patient.conditions}</dd></div>
+      <div><dt>Current medicines</dt><dd className="num">{patient.medications}</dd></div>
+      <div><dt>Follow-up</dt><dd className="num">{patient.followUp !== "—" ? <span className="due">{/^\d/.test(patient.followUp) ? `Due ${patient.followUp}` : patient.followUp}</span> : "None scheduled"}</dd></div>
+      {details && <div><dt>Details</dt><dd className="num">{details}</dd></div>}
+    </dl>}
+
+    {tab === "History" && (history.length ? <ul className="list" style={{ borderTop: 0 }}>{history.map((consultation) => <li key={consultation.id}><button className="row" onClick={() => onOpenConsultation(consultation)}>
+      <span className="lead"><Stethoscope {...icon} /></span>
+      <span className="rbody"><span className="t1">{consultation.reason}</span><span className="t2 num">{shortDate(consultation.date)} · {consultation.complaint}</span></span>
+      <span className={`status ${statusTone(consultation.approved ? "Approved" : consultation.status)}`}>{consultation.approved ? "Approved" : consultation.status}</span>
+    </button></li>)}</ul> : <p className="empty">No visits recorded yet.</p>)}
+
+    {tab === "Prescriptions" && (prescriptions.length ? <ul className="list tint" style={{ borderTop: 0 }}>{prescriptions.map((consultation) => <li key={consultation.id}><button className="row" onClick={() => onOpenConsultation(consultation)}>
+      <span className="lead"><FileText {...icon} /></span>
+      <span className="rbody"><span className="t1">{consultation.medicines.map((medicine) => medicine.name).join(", ")}</span><span className="t2 num">RX-{consultation.id.split("-").pop()} · {shortDate(consultation.date)}</span></span>
+      <ChevronRight size={16} className="chev" />
+    </button></li>)}</ul> : <p className="empty">No prescriptions yet.</p>)}
+
+    <div className="actionbar"><button className="btn lg primary block" onClick={onNewConsultation}><span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: 5, background: "#fff" }} />Start consultation</button></div>
+  </div>;
 }
-
-function ProfileStat({ label, value }: { label: string; value: string }) { return <div className="profile-stat"><span>{label}</span><strong>{value}</strong></div>; }
-
-function ClinicalLine({ label, value, icon: Icon }: { label: string; value: string; icon: LucideIcon }) { return <div className="clinical-line"><div className="clinical-line-icon"><Icon size={15} /></div><div><span>{label}</span><strong>{value}</strong></div></div>; }
-
-function MedicalHistory({ consultations, onOpenConsultation }: { consultations: Consultation[]; onOpenConsultation: (consultation: Consultation) => void }) { return <div className="history-pane"><div className="history-intro"><div><h3>Medical history</h3><p>Every consultation is retained as a separate, reviewable record.</p></div><Badge tone="mint">{consultations.length} visits</Badge></div><div className="timeline large">{consultations.map((consultation) => <button key={consultation.id} className="timeline-item" onClick={() => onOpenConsultation(consultation)}><div className="timeline-dot current" /><div><strong>{consultation.date} · {consultation.time}</strong><span>{consultation.reason}</span><small>{consultation.complaint}</small></div><StatusBadge status={consultation.status} /><ChevronRight size={14} /></button>)}</div></div>; }
-
-function ConsultationMiniList({ consultations, onOpenConsultation }: { consultations: Consultation[]; onOpenConsultation: (consultation: Consultation) => void }) { return <div className="history-pane"><div className="history-intro"><div><h3>Consultations</h3><p>Open any visit to review its transcript, notes, and approval trail.</p></div><Badge tone="info">{consultations.length} records</Badge></div><div className="mini-table">{consultations.map((consultation) => <button key={consultation.id} onClick={() => onOpenConsultation(consultation)}><div className="feed-icon"><Stethoscope size={15} /></div><span><strong>{consultation.reason}</strong><small>{consultation.id} · {consultation.date}</small></span><StatusBadge status={consultation.status} /><ChevronRight size={14} /></button>)}</div></div>; }
-
-function PrescriptionMiniList({ consultations, onOpenConsultation }: { consultations: Consultation[]; onOpenConsultation: (consultation: Consultation) => void }) { const items = consultations.filter((item) => item.medicines.length); return <div className="history-pane"><div className="history-intro"><div><h3>Prescriptions</h3><p>Approved medicines attached to this patient’s chart.</p></div><Badge tone="mint">{items.length} attached</Badge></div>{items.length ? <div className="mini-table">{items.map((consultation) => <button key={consultation.id} onClick={() => onOpenConsultation(consultation)}><div className="feed-icon"><ClipboardList size={15} /></div><span><strong>{consultation.medicines.length} medicines</strong><small>{consultation.id} · {consultation.date}</small></span><StatusBadge status={consultation.approved ? "Approved" : "Draft"} /><ChevronRight size={14} /></button>)}</div> : <EmptyState title="No prescriptions attached" description="Approved prescriptions will appear here." />}</div>; }
-

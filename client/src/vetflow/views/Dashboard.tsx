@@ -1,19 +1,85 @@
-import { todayLabel, todayLong } from "../store";
-import type { LucideIcon } from "lucide-react";
-import { ArrowRight, CalendarDays, ChevronRight, ClipboardList, Clock3, Mic, MoreHorizontal, PawPrint, Sparkles, Stethoscope, UserPlus, Zap } from "lucide-react";
-import type { Patient, Consultation, Appointment } from "../data";
-import { seedAppointments } from "../data";
-import { Button, Avatar, StatusBadge } from "../ui";
+import { ChevronRight, FileText, Mic, Phone, Plus, Search, Stethoscope } from "lucide-react";
+import type { Appointment, Consultation, Patient } from "../data";
+import { patientMeta, SpeciesIcon, statusTone } from "../kit";
+import type { ConsultDraft } from "../store";
 
-export function Dashboard({ patients, consultations, appointments = seedAppointments, onRegister, onNewConsultation, onPatients, onPrescriptions, onSchedule, onOpenPatient, onOpenConsultation }: { patients: Patient[]; consultations: Consultation[]; appointments?: Appointment[]; onRegister: () => void; onNewConsultation: () => void; onPatients: () => void; onPrescriptions: () => void; onSchedule: () => void; onOpenPatient: (id: string, tab?: string) => void; onOpenConsultation: (consultation: Consultation) => void }) {
-  return <div className="page-stack"><div className="page-header dashboard-header"><div><div className="eyebrow"><span className="live-dot" /> {todayLong()}</div><h1>Good morning, Dr. Sharma</h1><p>Here’s what’s happening at your clinic today.</p></div><div className="header-actions"><Button variant="secondary" onClick={onRegister}><UserPlus size={16} /> Register patient</Button><Button onClick={onNewConsultation}><Mic size={16} /> New consultation</Button></div></div><div className="demo-banner"><div className="banner-icon"><Sparkles size={17} /></div><div><strong>Demo workspace</strong><span>Explore VetFlow AI with realistic sample data. Changes you make will persist locally in this browser.</span></div><button onClick={onPatients}>View patients <ArrowRight size={14} /></button></div><div className="stat-grid"><StatCard label="Total registered patients" value="1,248" delta="12%" detail="vs. last month" icon={PawPrint} tone="green" /><StatCard label="Today’s consultations" value="18" delta="4" detail="scheduled today" icon={Stethoscope} tone="blue" /><StatCard label="Pending follow-ups" value="7" delta="2" detail="need your attention" icon={Clock3} tone="amber" /><StatCard label="Prescriptions generated" value="14" delta="18%" detail="this month" icon={ClipboardList} tone="purple" /></div><div className="dashboard-grid"><section className="card appointments-card"><div className="card-heading"><div><div className="eyebrow">Today · {todayLabel().slice(0, 6)}</div><h3>Today’s appointments</h3></div><button className="text-button" onClick={onSchedule}>View calendar <ArrowRight size={14} /></button></div><div className="appointment-list">{appointments.map((appointment) => <div key={appointment.id} className="appointment-row"><div className="appointment-time">{appointment.time}</div><div className="appointment-pet"><div className={`mini-pet ${appointment.pet === "Coco" ? "cow" : ""}`}><PawPrint size={14} /></div><div><strong>{appointment.pet}</strong><span>{appointment.owner}</span></div></div><div className="appointment-type">{appointment.reason}</div><StatusBadge status={appointment.status} /></div>)}</div><div className="card-footer"><span><span className="status-dot green" /> 4 visits completed</span><span><span className="status-dot grey" /> 14 remaining today</span></div></section><section className="card action-card"><div className="card-heading"><div><div className="eyebrow">Shortcuts</div><h3>Quick actions</h3></div><Zap size={17} className="muted-icon" /></div><div className="quick-action-list"><QuickAction icon={Mic} title="New consultation" description="Record and structure a visit" prominent onClick={onNewConsultation} /><QuickAction icon={UserPlus} title="Register patient" description="Create a new patient record" onClick={onRegister} /><QuickAction icon={ClipboardList} title="View prescriptions" description="Review recent approvals" onClick={onPrescriptions} /><QuickAction icon={CalendarDays} title="Schedule appointment" description="Add a visit to the calendar" onClick={onSchedule} /></div></section></div><div className="dashboard-grid lower-grid"><section className="card"><div className="card-heading"><div><div className="eyebrow">Patient directory</div><h3>Recent patients</h3></div><button className="text-button" onClick={onPatients}>View all <ArrowRight size={14} /></button></div><div className="recent-patients">{patients.slice(0, 4).map((patient) => <button key={patient.id} className="recent-patient-row" onClick={() => onOpenPatient(patient.id)}><Avatar patient={patient} /><span><strong>{patient.name}</strong><small>{patient.species} · {patient.breed}</small></span><span className="recent-owner">{patient.owner}<small>Last visit {patient.lastVisit}</small></span><ChevronRight size={15} className="row-chevron" /></button>)}</div></section><section className="card"><div className="card-heading"><div><div className="eyebrow">Care activity</div><h3>Recent consultations</h3></div><button className="text-button" onClick={() => onOpenConsultation(consultations[0])}>See history <ArrowRight size={14} /></button></div><div className="consultation-feed">{consultations.slice(0, 3).map((consultation) => { const patient = patients.find((item) => item.id === consultation.patientId); return <button key={consultation.id} className="feed-row" onClick={() => onOpenConsultation(consultation)}><div className="feed-icon"><Stethoscope size={15} /></div><div><strong>{patient?.name} · {consultation.reason}</strong><span>{consultation.complaint}</span></div><div className="feed-time">{consultation.date}<small>{consultation.time}</small></div></button>; })}</div></section></div></div>;
+const icon = { size: 20, strokeWidth: 1.75 } as const;
+
+/** Minutes until a "10:30 AM" style time today; negative once it has passed. */
+function minutesUntil(time: string, now = new Date()) {
+  const match = time.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+  if (!match) return null;
+  let hours = Number(match[1]) % 12;
+  if (match[3]?.toUpperCase() === "PM") hours += 12;
+  return hours * 60 + Number(match[2]) - (now.getHours() * 60 + now.getMinutes());
 }
 
-function StatCard({ label, value, delta, detail, icon: Icon, tone }: { label: string; value: string; delta: string; detail: string; icon: LucideIcon; tone: string }) {
-  return <div className="stat-card"><div className={`stat-icon ${tone}`}><Icon size={18} /></div><div className="stat-main"><span>{label}</span><strong>{value}</strong><small><b className={tone === "amber" ? "down" : "up"}>{tone === "amber" ? "↓" : "↑"} {delta}</b> {detail}</small></div><MoreHorizontal size={16} className="stat-more" /></div>;
+const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
+
+function shortTime(time: string) {
+  return time.replace(/\s*(AM|PM)$/i, "");
 }
 
-function QuickAction({ icon: Icon, title, description, prominent, onClick }: { icon: LucideIcon; title: string; description: string; prominent?: boolean; onClick: () => void }) {
-  return <button className={`quick-action ${prominent ? "quick-action-prominent" : ""}`} onClick={onClick}><div className="quick-action-icon"><Icon size={17} /></div><div><strong>{title}</strong><span>{description}</span></div><ChevronRight size={15} /></button>;
-}
+export function Dashboard({ patients, consultations, appointments, drafts, onStartConsult, onOpenPatient, onOpenConsultation, onResume, onSchedule, onSearch }: { patients: Patient[]; consultations: Consultation[]; appointments: Appointment[]; drafts: Record<string, ConsultDraft>; onStartConsult: (patientId?: string) => void; onOpenPatient: (id: string) => void; onOpenConsultation: (consultation: Consultation) => void; onResume: (consultId: string) => void; onSchedule: () => void; onSearch: () => void }) {
+  const patientFor = (appointment: Appointment) => patients.find((patient) => patient.name === appointment.pet);
+  const seen = appointments.filter((appointment) => appointment.status === "Completed").length;
+  const next = appointments.find((appointment) => appointment.status === "In Progress") ?? appointments.find((appointment) => appointment.status === "Upcoming");
+  const nextPatient = next ? patientFor(next) : undefined;
+  const rest = appointments.filter((appointment) => appointment !== next);
+  const draftRx = consultations.filter((consultation) => consultation.medicines.length > 0 && !consultation.approved);
+  const openConsults = Object.values(drafts).filter((draft) => !draft.consultation.approved && !draftRx.some((item) => item.id === draft.consultation.id));
+  const followUps = patients.filter((patient) => patient.followUp && patient.followUp !== "—").length;
+  const attention = draftRx.length + openConsults.length;
+  const minutes = next ? minutesUntil(next.time) : null;
+  const when = next?.status === "In Progress" ? "In consult" : minutes !== null && minutes > 0 && minutes < 120 ? `Next up · in ${minutes} min` : "Next up";
 
+  return <div className="v2">
+    <header className="page-title"><h1>Today</h1><button className="ibtn" aria-label="Search patients" onClick={onSearch}><Search size={24} strokeWidth={1.75} /></button></header>
+    <p className="summary num">{new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" }).format(new Date())} · {seen} of {appointments.length} seen · {plural(draftRx.length, "draft")} · {plural(followUps, "follow-up")} due</p>
+
+    {next && <section className="next" aria-label="Next up">
+      <div className="next-top"><span className="next-time num">{shortTime(next.time)}</span><span className="next-when">{when}</span></div>
+      <div className="next-pet">
+        <span className="lead"><SpeciesIcon species={nextPatient?.species ?? "Dog"} /></span>
+        <div className="rbody"><div className="next-name">{next.pet}</div><div className="t2">{nextPatient ? patientMeta(nextPatient) : next.owner}</div></div>
+      </div>
+      <p className="next-reason">{next.reason}</p>
+      <div className="next-actions">
+        <button className="btn lg primary" onClick={() => onStartConsult(nextPatient?.id)}><Mic {...icon} />Start consult</button>
+        {nextPatient && nextPatient.phone !== "—" && <a className="ibtn outline" href={`tel:${nextPatient.phone}`} aria-label={`Call ${nextPatient.owner}`}><Phone {...icon} /></a>}
+      </div>
+    </section>}
+
+    <div className="sec-h"><h2>Schedule</h2><button className="link" onClick={onSchedule}><Plus size={16} strokeWidth={2} />&nbsp;Add</button></div>
+    {rest.length ? <ul className="list sched">{rest.map((appointment) => {
+      const patient = patientFor(appointment);
+      const done = appointment.status === "Completed";
+      return <li key={appointment.id}><button className={`row s ${done ? "done" : ""}`} onClick={() => patient && onOpenPatient(patient.id)}>
+        <span className="time num">{shortTime(appointment.time)}</span>
+        <span className="lead"><SpeciesIcon species={patient?.species ?? "Dog"} /></span>
+        <span className="rbody"><span className="t1">{appointment.pet}</span><span className="t2">{[patient?.breed, appointment.reason].filter(Boolean).join(" · ")}</span></span>
+        {appointment.status !== "Upcoming" && <span className={`status ${statusTone(done ? "Seen" : appointment.status)}`}>{done ? "Seen" : appointment.status}</span>}
+      </button></li>;
+    })}</ul> : <p className="empty">Nothing else scheduled today.</p>}
+
+    <div className="sec-h"><h2>Needs attention</h2>{attention > 0 && <span className="meta num">{attention}</span>}</div>
+    {attention ? <ul className="list att">
+      {openConsults.map((draft) => {
+        const patient = patients.find((item) => item.id === draft.consultation.patientId);
+        return <li key={draft.consultation.id}><button className="row" onClick={() => onResume(draft.consultation.id)}>
+          <span className="lead"><Stethoscope {...icon} /></span>
+          <span className="rbody"><span className="t1">Continue consultation · {patient?.name}</span><span className="t2 num">{draft.consultation.id} · {draft.phase === "ready" ? "not recorded yet" : draft.phase === "prescription" ? "prescription pending" : "notes in review"}</span></span>
+          <ChevronRight size={16} className="chev" />
+        </button></li>;
+      })}
+      {draftRx.map((consultation) => {
+        const patient = patients.find((item) => item.id === consultation.patientId);
+        return <li key={consultation.id}><button className="row" onClick={() => drafts[consultation.id] ? onResume(consultation.id) : onOpenConsultation(consultation)}>
+          <span className="lead"><FileText {...icon} /></span>
+          <span className="rbody"><span className="t1">Approve prescription · {patient?.name}</span><span className="t2 num">RX-{consultation.id.split("-").pop()} · {consultation.medicines.length} medicines · draft</span></span>
+          <ChevronRight size={16} className="chev" />
+        </button></li>;
+      })}
+    </ul> : <p className="empty">No drafts waiting.</p>}
+  </div>;
+}
