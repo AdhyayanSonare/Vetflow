@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { ChevronRight, FileText, Mic, Search, Stethoscope, UserPlus } from "lucide-react";
 import type { Consultation, Patient } from "../data";
 import { hasAllergy, SpeciesIcon } from "../kit";
@@ -7,21 +8,23 @@ import { todayLabel } from "../store";
 const icon = { size: 20, strokeWidth: 1.75 } as const;
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
 const parseDate = (value: string) => { const time = Date.parse(value); return Number.isNaN(time) ? 0 : time; };
-const stage: Record<string, string> = { ready: "Not recorded yet", recording: "Recording", paused: "Paused", processing: "Transcribing", transcribed: "Drafting notes", notes: "Notes in review", prescription: "Prescription in review" };
-
-/** Static wave lines behind the hero: the product's one motif, quiet at rest. */
-function HeroWaves() {
-  const line = (amp: number, period: number, y: number) => {
-    const points: string[] = [];
-    for (let x = 0; x <= 400; x += 4) points.push(`${x === 0 ? "M" : "L"}${x} ${(y - amp * Math.sin((2 * Math.PI * x) / period)).toFixed(1)}`);
-    return points.join(" ");
-  };
-  return <svg className="hero-waves" viewBox="0 0 400 160" preserveAspectRatio="none" aria-hidden="true">
-    <path d={line(14, 160, 112)} />
-    <path d={line(9, 110, 132)} />
-    <path d={line(5, 70, 148)} />
-  </svg>;
+/** The greeting animates in once per session; after that Today appears instantly. */
+function useIntroOnce() {
+  const [intro] = useState(() => {
+    try {
+      if (sessionStorage.getItem("vf-intro")) return false;
+      sessionStorage.setItem("vf-intro", "1");
+    } catch { /* storage blocked: just animate */ }
+    return true;
+  });
+  return intro;
 }
+
+function Words({ text, start = 0 }: { text: string; start?: number }) {
+  return <>{text.split(" ").map((word, index) => <span key={index} className="word" style={{ animationDelay: `${start + index * 55}ms` }}>{word}{" "}</span>)}</>;
+}
+
+const stage: Record<string, string> = { ready: "Not recorded yet", recording: "Recording", paused: "Paused", processing: "Transcribing", transcribed: "Drafting notes", notes: "Notes in review", prescription: "Prescription in review" };
 
 export function Dashboard({ patients, consultations, drafts, onStartConsult, onRegister, onOpenPatient, onOpenConsultation, onResume, onSearch, onMenu }: { patients: Patient[]; consultations: Consultation[]; drafts: Record<string, ConsultDraft>; onStartConsult: () => void; onRegister: () => void; onOpenPatient: (id: string) => void; onOpenConsultation: (consultation: Consultation) => void; onResume: (consultId: string) => void; onSearch: () => void; onMenu: () => void }) {
   const today = todayLabel();
@@ -33,18 +36,19 @@ export function Dashboard({ patients, consultations, drafts, onStartConsult, onR
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
-  return <div className="v2">
-    <header className="page-title"><h1>Today</h1><button className="ibtn" aria-label="Search patients" onClick={onSearch}><Search size={24} strokeWidth={1.75} /></button><button className="ibtn" aria-label="Account, Dr. Sharma" onClick={onMenu}><span className="me">DS</span></button></header>
-    <p className="summary num">{new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" }).format(new Date())} · {plural(seenToday.length, "consultation")} today · {awaiting.length + openDrafts.length} waiting on you</p>
+  const waiting = awaiting.length + openDrafts.length;
+  const intro = useIntroOnce();
 
-    <section className="hero" aria-label="Start a consultation">
-      <HeroWaves />
-      <p className="hero-kicker">{greeting}, Dr. Sharma</p>
-      <h2 className="hero-title">Speak the visit.<br />VetFlow writes it up.</h2>
-      <p className="hero-sub">Record the consultation. Notes and the prescription are drafted from what was said, for you to check and approve.</p>
-      <div className="hero-actions">
-        <button className="btn lg hero-primary" onClick={onStartConsult}><Mic {...icon} />Start consultation</button>
-        <button className="btn lg hero-secondary" onClick={onRegister}><UserPlus {...icon} />Register patient</button>
+  return <div className="v2">
+    <header className="page-title"><span style={{ flex: 1 }} /><button className="ibtn" aria-label="Search patients" onClick={onSearch}><Search size={24} strokeWidth={1.75} /></button><button className="ibtn" aria-label="Account, Dr. Sharma" onClick={onMenu}><span className="me">DS</span></button></header>
+
+    <section className={`greet ${intro ? "intro" : ""}`}>
+      <h1><Words text={`${greeting},`} /><br /><Words text="Dr. Sharma" start={110} /></h1>
+      <p className="num">{new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long" }).format(new Date())} · {plural(seenToday.length, "consultation")} so far</p>
+      <span className={`greet-chip ${waiting ? "warn" : ""}`}><i />{waiting ? `${waiting} waiting on you` : "You’re all caught up"}</span>
+      <div className="greet-actions">
+        <button className="btn lg primary" onClick={onStartConsult}><Mic {...icon} />Start consultation</button>
+        <button className="btn lg secondary" onClick={onRegister}><UserPlus {...icon} />Register patient</button>
       </div>
     </section>
 
