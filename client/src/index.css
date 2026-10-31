@@ -4,16 +4,16 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --forest: #043b2e;
-  --forest-deep: #022a20;
-  --forest-soft: #e4f0ea;
+  --forest: #145c4a;
+  --forest-deep: #0d4739;
+  --forest-soft: #e7f3ed;
   --mint: #bfe5d4;
-  --mint-strong: #43856a;
+  --mint-strong: #2c9c74;
   --ink: #14231e;
   --ink-soft: #4a5d56;
   --muted: #6b7c76;
-  --line: #e6e8d8;
-  --canvas: #fcfdf0;
+  --line: #e4ebe7;
+  --canvas: #f5f8f6;
   --card: #ffffff;
   --amber: #b97818;
   --amber-soft: #fff4df;
@@ -45,7 +45,7 @@ button:not(:disabled) { cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: .62; }
 
 .app-shell { min-height: 100vh; background: var(--canvas); }
-.sidebar { position: fixed; inset: 0 auto 0 0; z-index: 30; display: flex; flex-direction: column; width: 250px; padding: 20px 14px 14px; background: var(--canvas); border-right: 1px solid var(--line); transition: width .2s ease, transform .2s ease; }
+.sidebar { position: fixed; inset: 0 auto 0 0; z-index: 30; display: flex; flex-direction: column; width: 250px; padding: 20px 14px 14px; background: #f8fbf9; border-right: 1px solid var(--line); transition: width .2s ease, transform .2s ease; }
 .sidebar-collapsed { width: 78px; }
 .brand-row { display: flex; align-items: center; gap: 10px; min-height: 38px; padding: 0 8px; }
 .brand-mark { display: flex; align-items: center; justify-content: center; gap: 1px; width: 34px; height: 34px; flex: 0 0 34px; color: white; background: var(--forest); border-radius: 10px; }
@@ -89,7 +89,7 @@ button:disabled { cursor: not-allowed; opacity: .62; }
 
 .main-area { min-height: 100vh; margin-left: 250px; transition: margin-left .2s ease; }
 .main-collapsed { margin-left: 78px; }
-.topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 25px; height: 72px; padding: 0 34px; background: rgba(252, 253, 240, .94); border-bottom: 1px solid rgba(222, 233, 228, .82); backdrop-filter: blur(12px); }
+.topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 25px; height: 72px; padding: 0 34px; background: rgba(245, 248, 246, .93); border-bottom: 1px solid rgba(222, 233, 228, .82); backdrop-filter: blur(12px); }
 .topbar-left, .topbar-right { display: flex; align-items: center; }
 .breadcrumb { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; }
 .breadcrumb strong { color: var(--ink); font-weight: 650; }
