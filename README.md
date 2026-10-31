@@ -7,6 +7,15 @@ React / Express / tRPC / Drizzle starter, adapted from the Sandbox web-db-user t
 - `pnpm db:migrate`: apply checked-in migrations. `pnpm db:push`: generate and apply new schema changes.
 - `pnpm check` / `pnpm test`: types and application tests.
 
+## Deploying (Render)
+
+`render.yaml` is a Blueprint that builds the existing `Dockerfile`. In Render: **New > Blueprint**, pick this repo and the `voice-transcription` branch, then fill in the two secrets it asks for:
+
+- `GROQ_API_KEY`: your Groq key (stays on the server).
+- `SITE_PASSWORD`: one shared password for the whole site (browser prompts for it; any username works). If unset, the site and the Groq-backed endpoints are open to anyone with the URL.
+
+The microphone only works over HTTPS, which Render provides. Data is still stored in each browser (localStorage). Free instances sleep after idle time, so the first load can take about a minute.
+
 ## Voice transcription
 
 Consultation recording and audio upload use Groq's Whisper (`whisper-large-v3`). Set `GROQ_API_KEY` in the server environment (`.env`, gitignored); `GROQ_API_URL` is optional and defaults to `https://api.groq.com/openai/v1`. The key is only read on the server and is never sent to the browser.
