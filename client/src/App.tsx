@@ -8,9 +8,9 @@ import Home from "./pages/Home";
 function Router() {
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
       <Route path={"/404"} component={NotFound} />
-      {/* The dashboard is a single responsive workspace with module paths. */}
+      {/* One Home instance owns every module path, so the store and shell
+          aren't remounted when moving between "/" and other routes. */}
       <Route component={Home} />
     </Switch>
   );

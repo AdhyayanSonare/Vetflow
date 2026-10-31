@@ -546,6 +546,9 @@ button:disabled { cursor: not-allowed; opacity: .62; }
   .patient-workspace { grid-template-columns: 1fr; }
   .patient-profile { order: -1; }
   .patient-directory { max-height: 500px; overflow: auto; }
+  /* No patient in the URL: the list is the whole screen. */
+  .patient-workspace.no-selection .patient-profile { display: none; }
+  .patient-workspace.no-selection .patient-directory { max-height: none; }
 }
 @media (max-width: 900px) {
   .sidebar { width: 232px; transform: translateX(-102%); box-shadow: 10px 0 30px rgba(13,71,57,.1); }
