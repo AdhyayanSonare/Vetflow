@@ -4,7 +4,7 @@ import { Activity, ArrowLeft, Bell, CalendarDays, CheckCircle2, ChevronDown, Che
 import { toast } from "sonner";
 import { Redirect, Route, Switch, useLocation, useParams, useSearch } from "wouter";
 import type { Consultation, Medicine, ViewKey } from "@/vetflow/data";
-import { demoTranscription } from "@/vetflow/data";
+import { demoNotes, demoTranscription } from "@/vetflow/data";
 import { patientMeta, Sheet, SpeciesIcon } from "@/vetflow/kit";
 import { AppointmentModal, ConsultationDetailModal, RegisterModal } from "@/vetflow/modals";
 import type { ConsultDraft, Phase } from "@/vetflow/store";
@@ -50,6 +50,7 @@ type ShellActions = {
   openConsultation: (consultation: Consultation) => void;
   openSearch: () => void;
   resume: (consultId: string) => void;
+  openMenu: () => void;
 };
 const ShellContext = createContext<ShellActions | null>(null);
 const useShell = () => useContext(ShellContext)!;
@@ -84,6 +85,7 @@ function Shell() {
     openConsultation: setDetailConsultation,
     openSearch: () => setSearchOpen(true),
     resume: (consultId) => setLocation(`/consult/${consultId}`),
+    openMenu: () => setSidebarOpen(true),
   };
   // Today, Patients and the consultation flow use the new visual system; on
   // phones they draw their own headers, and the flow hides the tab bar so a
@@ -161,7 +163,7 @@ function SearchSheet({ onClose, onOpen }: { onClose: () => void; onOpen: (id: st
 function DashboardRoute() {
   const store = useStore();
   const shell = useShell();
-  return <Dashboard patients={store.patients} consultations={store.consultations} appointments={store.appointments} drafts={store.drafts} onStartConsult={shell.startConsultation} onOpenPatient={(id) => shell.openPatient(id)} onOpenConsultation={shell.openConsultation} onResume={shell.resume} onSchedule={() => shell.openAppointmentForm()} onSearch={shell.openSearch} />;
+  return <Dashboard patients={store.patients} consultations={store.consultations} appointments={store.appointments} drafts={store.drafts} onStartConsult={shell.startConsultation} onOpenPatient={(id) => shell.openPatient(id)} onOpenConsultation={shell.openConsultation} onResume={shell.resume} onSchedule={() => shell.openAppointmentForm()} onSearch={shell.openSearch} onMenu={shell.openMenu} />;
 }
 
 function PatientsRoute() {
@@ -185,7 +187,7 @@ function PatientsRoute() {
 
   const filtered = store.patients.filter((patient) => `${patient.name} ${patient.owner} ${patient.id} ${patient.breed} ${patient.phone}`.toLowerCase().includes(patientSearch.toLowerCase()) && matchesSpecies(patient, speciesFilter));
   const consultations = selectedPatient ? store.consultations.filter((consultation) => consultation.patientId === selectedPatient.id) : [];
-  return <PatientsView patients={filtered} allPatients={store.patients} selectedPatient={selectedPatient} patientSearch={patientSearch} setPatientSearch={setPatientSearch} speciesFilter={speciesFilter} setSpeciesFilter={setSpeciesFilter} onRegister={shell.openRegister} onOpenPatient={(id) => shell.openPatient(id)} onBack={() => setLocation("/patients")} onNewConsultation={(patient) => shell.startConsultation(patient.id)} profileTab={profileTab} setProfileTab={(tab) => selectedPatient && setLocation(`/patients/${selectedPatient.id}${tab === "Summary" ? "" : `?tab=${tabSlug(tab)}`}`, { replace: true })} consultations={consultations} onOpenConsultation={shell.openConsultation} />;
+  return <PatientsView patients={filtered} allPatients={store.patients} selectedPatient={selectedPatient} patientSearch={patientSearch} setPatientSearch={setPatientSearch} speciesFilter={speciesFilter} setSpeciesFilter={setSpeciesFilter} onRegister={shell.openRegister} onOpenPatient={(id) => shell.openPatient(id)} onBack={() => setLocation("/patients")} onNewConsultation={(patient) => shell.startConsultation(patient.id)} onBook={(patient) => shell.openAppointmentForm(patient.id)} profileTab={profileTab} setProfileTab={(tab) => selectedPatient && setLocation(`/patients/${selectedPatient.id}${tab === "Summary" ? "" : `?tab=${tabSlug(tab)}`}`, { replace: true })} consultations={consultations} onOpenConsultation={shell.openConsultation} />;
 }
 
 /** `/consult/new?patient=ID` creates a draft and replaces itself with the draft's permanent URL. */
@@ -201,8 +203,6 @@ function StartConsultationRoute() {
     if (started.current) return;
     started.current = true;
     const id = store.startConsultation(patientId);
-    const patient = store.patients.find((item) => item.id === patientId);
-    toast.success(`New consultation started for ${patient?.name ?? "patient"}`);
     setLocation(`/consult/${id}`, { replace: true });
   }, [store, patientId, setLocation]);
 
@@ -265,19 +265,19 @@ function ActiveConsultation({ draft }: { draft: ConsultDraft }) {
   }, [phase, id, updateDraft]);
 
   const patient = store.patients.find((item) => item.id === consultation.patientId) ?? store.patients[0];
-  const hydrated = (): Consultation => ({ ...consultation, transcription: demoTranscription, complaint: "Vomiting and loss of appetite", notes: { complaint: "Vomiting; loss of appetite; reduced activity", duration: "Approximately one day", examination: "Temperature: 102°F. Mild dehydration observed.", diagnosis: "Pending doctor’s confirmation", treatment: "As specified by the veterinarian", followUp: "After five days" } });
+  const hydrated = (): Consultation => ({ ...consultation, transcription: demoTranscription, complaint: demoNotes.complaint, notes: { ...demoNotes } });
   const withEdits = (patch: Partial<Consultation>): Consultation => ({ ...consultation, notes: draft.notes, transcription: consultation.transcription || demoTranscription, ...patch });
 
   const stop = (message: string) => {
     const next = hydrated();
     setPhase("processing", { consultation: next, notes: next.notes });
-    toast.success(message);
+    if (message) toast.success(message);
   };
-  const saveNotes = () => {
+  const saveNotes = (quiet = false) => {
     const updated = withEdits({ complaint: draft.notes.complaint });
     updateDraft(id, { consultation: updated });
     store.saveConsultation(updated);
-    toast.success("Notes saved");
+    if (!quiet) toast.success("Notes saved");
   };
   const saveDraft = () => {
     const updated = withEdits({ medicines: draft.medicines, status: "Draft", approved: false });
@@ -289,7 +289,6 @@ function ActiveConsultation({ draft }: { draft: ConsultDraft }) {
     const updated = withEdits({ medicines: draft.medicines, status: "Completed", approved: true });
     setPhase("done", { consultation: updated });
     store.saveConsultation(updated);
-    toast.success(`Approved and added to ${patient.name}’s record`);
   };
   const setMedicines = (medicines: Medicine[]) => updateDraft(id, { medicines });
   const nextAppointment = store.appointments.find((appointment) => appointment.status === "Upcoming" && appointment.pet !== patient.name);
@@ -299,7 +298,7 @@ function ActiveConsultation({ draft }: { draft: ConsultDraft }) {
     onClose={() => setLocation("/")}
     onSelectPatient={(patientId) => { updateDraft(id, { consultation: { ...consultation, patientId } }); store.setLastPatient(patientId); }}
     onStart={() => setPhase("recording")} onPause={() => setPhase("paused")} onResume={() => setPhase("recording")}
-    onStop={() => stop("Recording stopped — drafting notes")}
+    onStop={() => stop("")}
     onDiscard={() => { setElapsed(0); elapsedRef.current = 0; setPhase("ready"); }}
     onUploadAudio={(file) => stop(`${file.name} uploaded — drafting notes`)}
     onNotesChange={(notes) => updateDraft(id, { notes })} onSaveNotes={saveNotes} onGoNotes={() => setPhase("notes")} onGoPrescription={() => setPhase("prescription")}

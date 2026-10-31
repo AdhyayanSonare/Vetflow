@@ -23,8 +23,7 @@ type StoreState = {
   lastPatientId: string;
 };
 
-const STORAGE_KEY = "vetflow-demo-v2";
-const LEGACY_KEY = "vetflow-demo-state";
+const STORAGE_KEY = "vetflow-demo-v3";
 
 function seedState(): StoreState {
   return { version: 2, patients: seedPatients, consultations: seedConsultations, appointments: seedAppointments, drafts: {}, lastPatientId: seedPatients[0].id };
@@ -36,11 +35,6 @@ function readState(): StoreState {
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<StoreState>;
       if (parsed.version === 2) return { ...seedState(), ...parsed } as StoreState;
-    }
-    const legacy = localStorage.getItem(LEGACY_KEY);
-    if (legacy) {
-      const parsed = JSON.parse(legacy) as Partial<StoreState>;
-      return { ...seedState(), patients: parsed.patients ?? seedPatients, consultations: parsed.consultations ?? seedConsultations, appointments: parsed.appointments ?? seedAppointments };
     }
   } catch {
     // Fall back to the deterministic seed data when storage is unavailable or corrupt.
@@ -58,7 +52,7 @@ function nextId(prefix: string, ids: string[], start: number, pad = 0) {
 }
 
 export function todayLabel(date = new Date()) {
-  return new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(date);
+  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(date);
 }
 
 export function todayLong(date = new Date()) {
@@ -66,7 +60,7 @@ export function todayLong(date = new Date()) {
 }
 
 export function timeLabel(date = new Date()) {
-  return new Intl.DateTimeFormat("en-US", { hour: "2-digit", minute: "2-digit" }).format(date);
+  return new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }).format(date);
 }
 
 function useStoreValue() {
@@ -94,7 +88,7 @@ function useStoreValue() {
 
   const startConsultation = useCallback((patientId: string) => {
     const current = stateRef.current;
-    const id = nextId(`CONS-${new Date().getFullYear()}-`, [...current.consultations.map((c) => c.id), ...Object.keys(current.drafts)], 100);
+    const id = nextId(`CONS-${new Date().getFullYear()}-`, [...current.consultations.map((c) => c.id), ...Object.keys(current.drafts)], 100, 4);
     const consultation: Consultation = { id, patientId, date: todayLabel(), time: timeLabel(), reason: "General Consultation", status: "In progress", doctor: "Dr. Sharma", complaint: "To be documented", transcription: "", notes: { complaint: "", duration: "", examination: "", diagnosis: "Pending doctor’s confirmation", treatment: "", followUp: "" }, medicines: [], approved: false };
     const draft: ConsultDraft = { consultation, phase: "ready", elapsed: 0, notes: consultation.notes, medicines: sampleMedicines.map((medicine) => ({ ...medicine })) };
     stateRef.current = { ...current, drafts: { ...current.drafts, [id]: draft }, lastPatientId: patientId };

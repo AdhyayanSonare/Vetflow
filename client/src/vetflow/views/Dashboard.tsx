@@ -1,4 +1,4 @@
-import { ChevronRight, FileText, Mic, Phone, Plus, Search, Stethoscope } from "lucide-react";
+import { ChevronRight, FileText, Mic, Phone, Search, Stethoscope } from "lucide-react";
 import type { Appointment, Consultation, Patient } from "../data";
 import { patientMeta, SpeciesIcon, statusTone } from "../kit";
 import type { ConsultDraft } from "../store";
@@ -20,10 +20,10 @@ function shortTime(time: string) {
   return time.replace(/\s*(AM|PM)$/i, "");
 }
 
-export function Dashboard({ patients, consultations, appointments, drafts, onStartConsult, onOpenPatient, onOpenConsultation, onResume, onSchedule, onSearch }: { patients: Patient[]; consultations: Consultation[]; appointments: Appointment[]; drafts: Record<string, ConsultDraft>; onStartConsult: (patientId?: string) => void; onOpenPatient: (id: string) => void; onOpenConsultation: (consultation: Consultation) => void; onResume: (consultId: string) => void; onSchedule: () => void; onSearch: () => void }) {
+export function Dashboard({ patients, consultations, appointments, drafts, onStartConsult, onOpenPatient, onOpenConsultation, onResume, onSchedule, onSearch, onMenu }: { patients: Patient[]; consultations: Consultation[]; appointments: Appointment[]; drafts: Record<string, ConsultDraft>; onStartConsult: (patientId?: string) => void; onOpenPatient: (id: string) => void; onOpenConsultation: (consultation: Consultation) => void; onResume: (consultId: string) => void; onSchedule: () => void; onSearch: () => void; onMenu: () => void }) {
   const patientFor = (appointment: Appointment) => patients.find((patient) => patient.name === appointment.pet);
   const seen = appointments.filter((appointment) => appointment.status === "Completed").length;
-  const next = appointments.find((appointment) => appointment.status === "In Progress") ?? appointments.find((appointment) => appointment.status === "Upcoming");
+  const next = appointments.find((appointment) => appointment.status === "In Progress") ?? appointments.find((appointment) => appointment.status === "Arrived") ?? appointments.find((appointment) => appointment.status === "Upcoming");
   const nextPatient = next ? patientFor(next) : undefined;
   const rest = appointments.filter((appointment) => appointment !== next);
   const draftRx = consultations.filter((consultation) => consultation.medicines.length > 0 && !consultation.approved);
@@ -34,7 +34,7 @@ export function Dashboard({ patients, consultations, appointments, drafts, onSta
   const when = next?.status === "In Progress" ? "In consult" : minutes !== null && minutes > 0 && minutes < 120 ? `Next up · in ${minutes} min` : "Next up";
 
   return <div className="v2">
-    <header className="page-title"><h1>Today</h1><button className="ibtn" aria-label="Search patients" onClick={onSearch}><Search size={24} strokeWidth={1.75} /></button></header>
+    <header className="page-title"><h1>Today</h1><button className="ibtn" aria-label="Search patients" onClick={onSearch}><Search size={24} strokeWidth={1.75} /></button><button className="ibtn" aria-label="Account, Dr. Sharma" onClick={onMenu}><span className="me">DS</span></button></header>
     <p className="summary num">{new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" }).format(new Date())} · {seen} of {appointments.length} seen · {plural(draftRx.length, "draft")} · {plural(followUps, "follow-up")} due</p>
 
     {next && <section className="next" aria-label="Next up">
@@ -42,6 +42,7 @@ export function Dashboard({ patients, consultations, appointments, drafts, onSta
       <div className="next-pet">
         <span className="lead"><SpeciesIcon species={nextPatient?.species ?? "Dog"} /></span>
         <div className="rbody"><div className="next-name">{next.pet}</div><div className="t2">{nextPatient ? patientMeta(nextPatient) : next.owner}</div></div>
+        {next.status === "Arrived" && <span className="status brand">Arrived</span>}
       </div>
       <p className="next-reason">{next.reason}</p>
       <div className="next-actions">
@@ -50,7 +51,7 @@ export function Dashboard({ patients, consultations, appointments, drafts, onSta
       </div>
     </section>}
 
-    <div className="sec-h"><h2>Schedule</h2><button className="link" onClick={onSchedule}><Plus size={16} strokeWidth={2} />&nbsp;Add</button></div>
+    <div className="sec-h"><h2>Schedule</h2><span className="meta num">{rest.filter((appointment) => appointment.status !== "Completed").length} left</span></div>
     {rest.length ? <ul className="list sched">{rest.map((appointment) => {
       const patient = patientFor(appointment);
       const done = appointment.status === "Completed";
