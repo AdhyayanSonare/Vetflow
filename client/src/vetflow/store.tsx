@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { Appointment, Consultation, Medicine, Patient } from "./data";
-import { initials, sampleMedicines, seedAppointments, seedConsultations, seedPatients } from "./data";
+import { initials, seedAppointments, seedConsultations, seedPatients } from "./data";
 
-export type Phase = "ready" | "recording" | "paused" | "processing" | "notes" | "prescription";
+export type Phase = "ready" | "recording" | "paused" | "processing" | "transcribed" | "notes" | "prescription";
 
 // Everything an in-progress consultation needs to resume after a reload or the
 // OS killing the tab: the record, where the vet was in the flow, and their edits.
@@ -96,7 +96,7 @@ function useStoreValue() {
     const current = stateRef.current;
     const id = nextId(`CONS-${new Date().getFullYear()}-`, [...current.consultations.map((c) => c.id), ...Object.keys(current.drafts)], 100);
     const consultation: Consultation = { id, patientId, date: todayLabel(), time: timeLabel(), reason: "General Consultation", status: "In progress", doctor: "Dr. Sharma", complaint: "To be documented", transcription: "", notes: { complaint: "", duration: "", examination: "", diagnosis: "Pending doctor’s confirmation", treatment: "", followUp: "" }, medicines: [], approved: false };
-    const draft: ConsultDraft = { consultation, phase: "ready", elapsed: 0, notes: consultation.notes, medicines: sampleMedicines.map((medicine) => ({ ...medicine })) };
+    const draft: ConsultDraft = { consultation, phase: "ready", elapsed: 0, notes: consultation.notes, medicines: [] };
     stateRef.current = { ...current, drafts: { ...current.drafts, [id]: draft }, lastPatientId: patientId };
     setState(stateRef.current);
     return id;

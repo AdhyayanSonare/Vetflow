@@ -4,7 +4,8 @@ import { Activity, ArrowLeft, Bell, CalendarDays, CheckCircle2, ChevronDown, Che
 import { toast } from "sonner";
 import { Redirect, Route, Switch, useLocation, useParams, useSearch } from "wouter";
 import type { Consultation, Medicine, ViewKey } from "@/vetflow/data";
-import { demoTranscription } from "@/vetflow/data";
+import { useAudioRecorder } from "@/hooks/useAudioRecorder";
+import { VoiceError, transcribeAudioBlob, validateAudio } from "@/lib/voice";
 import { AppointmentModal, ConsultationDetailModal, RegisterModal } from "@/vetflow/modals";
 import type { ConsultDraft, Phase } from "@/vetflow/store";
 import { StoreProvider, todayLabel, useStore } from "@/vetflow/store";
@@ -206,8 +207,11 @@ function ActiveConsultation({ draft }: { draft: ConsultDraft }) {
   const setPhase = (next: Phase, patch: Partial<ConsultDraft> = {}) => updateDraft(id, { phase: next, elapsed: elapsedRef.current, ...patch });
 
   useEffect(() => {
-    // A reload can't continue a live recording; land on Paused with the time kept.
-    if (draft.phase === "recording") updateDraft(id, { phase: "paused" });
+    // A reload can't continue a live recording or an in-flight transcription; return to Ready so the vet can record again.
+    if (draft.phase === "recording" || draft.phase === "paused" || draft.phase === "processing") {
+      updateDraft(id, { phase: "ready", elapsed: 0 });
+      toast.info("The previous recording was interrupted by a reload. Please record or upload again.");
+    }
     const persist = () => store.updateDraftNow(id, { elapsed: elapsedRef.current });
     window.addEventListener("pagehide", persist);
     return () => { window.removeEventListener("pagehide", persist); persist(); };
@@ -221,22 +225,80 @@ function ActiveConsultation({ draft }: { draft: ConsultDraft }) {
     return () => window.clearInterval(timer);
   }, [phase]);
 
+  const recorder = useAudioRecorder();
+  const runRef = useRef(0);
+  const [voiceError, setVoiceError] = useState("");
+  const [pendingAudio, setPendingAudio] = useState<{ blob: Blob; name?: string } | null>(null);
+  const [audioUrl, setAudioUrl] = useState("");
   useEffect(() => {
-    if (phase !== "processing") return;
-    const timer = window.setTimeout(() => updateDraft(id, { phase: "notes" }), 1800);
-    return () => window.clearTimeout(timer);
-  }, [phase, id, updateDraft]);
+    if (!pendingAudio) { setAudioUrl(""); return; }
+    const url = URL.createObjectURL(pendingAudio.blob);
+    setAudioUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [pendingAudio]);
+  // Ignore a transcription that finishes after the vet has left this consultation.
+  useEffect(() => () => { runRef.current += 1; }, []);
 
   const patient = store.patients.find((item) => item.id === consultation.patientId) ?? store.patients[0];
   const patientConsultations = store.consultations.filter((item) => item.patientId === patient.id && item.id !== id);
-  const hydrated = (): Consultation => ({ ...consultation, transcription: demoTranscription, complaint: "Vomiting and loss of appetite", notes: { complaint: "Vomiting; loss of appetite; reduced activity", duration: "Approximately one day", examination: "Temperature: 102°F. Mild dehydration observed.", diagnosis: "Pending doctor’s confirmation", treatment: "As specified by the veterinarian", followUp: "After five days" } });
-  const withEdits = (patch: Partial<Consultation>): Consultation => ({ ...consultation, notes: draft.notes, transcription: consultation.transcription || demoTranscription, ...patch });
+  const withEdits = (patch: Partial<Consultation>): Consultation => ({ ...consultation, notes: draft.notes, ...patch });
 
-  const stop = (message: string) => {
-    const next = hydrated();
-    setPhase("processing", { consultation: next, notes: next.notes });
-    toast.success(message);
+  const reportVoiceError = (error: unknown) => {
+    const message = error instanceof VoiceError ? error.message : "Something went wrong with the recording. Please try again.";
+    setVoiceError(message);
+    toast.error(message);
   };
+  const transcribe = async (audio: { blob: Blob; name?: string }) => {
+    const run = ++runRef.current;
+    setPendingAudio(audio);
+    setVoiceError("");
+    setPhase("processing");
+    try {
+      const result = await transcribeAudioBlob(audio.blob, { name: audio.name });
+      if (run !== runRef.current) return;
+      setPhase("transcribed", { consultation: { ...consultation, transcription: result.transcript } });
+      toast.success("Transcript ready — review it, then complete the clinical notes");
+    } catch (error) {
+      if (run !== runRef.current) return;
+      setPhase("ready");
+      reportVoiceError(error);
+    }
+  };
+  const start = async () => {
+    setVoiceError("");
+    setPendingAudio(null);
+    try {
+      await recorder.start();
+    } catch (error) {
+      reportVoiceError(error);
+      return;
+    }
+    elapsedRef.current = 0;
+    setElapsed(0);
+    setPhase("recording");
+    toast.success("Recording started — speak naturally about the patient");
+  };
+  const stop = async () => {
+    let blob: Blob;
+    try {
+      blob = await recorder.stop();
+    } catch (error) {
+      setPhase("ready");
+      reportVoiceError(error);
+      return;
+    }
+    await transcribe({ blob, name: "consultation-recording" });
+  };
+  const uploadAudio = async (file: File) => {
+    try {
+      validateAudio(file);
+    } catch (error) {
+      reportVoiceError(error);
+      return;
+    }
+    await transcribe({ blob: file, name: file.name });
+  };
+
   const saveNotes = () => {
     const updated = withEdits({ complaint: draft.notes.complaint });
     updateDraft(id, { consultation: updated });
@@ -259,9 +321,8 @@ function ActiveConsultation({ draft }: { draft: ConsultDraft }) {
 
   return <ConsultationView patients={store.patients} selectedPatient={patient} patientConsultations={patientConsultations} activeConsultation={consultation} phase={phase} elapsed={elapsed} notesDraft={draft.notes} medicinesDraft={draft.medicines}
     onSelectPatient={(patientId) => { updateDraft(id, { consultation: { ...consultation, patientId } }); store.setLastPatient(patientId); }}
-    onStart={() => setPhase("recording")} onPause={() => setPhase("paused")} onResume={() => setPhase("recording")}
-    onStop={() => stop("Audio captured — VetFlow AI is structuring the consultation")}
-    onUploadAudio={(file) => stop(`${file.name} uploaded — VetFlow AI is structuring the consultation`)}
+    onStart={start} onPause={() => { recorder.pause(); setPhase("paused"); }} onResume={() => { recorder.resume(); setPhase("recording"); }}
+    onStop={stop} onUploadAudio={uploadAudio} voiceError={voiceError} canRetry={Boolean(pendingAudio)} onRetry={() => { if (pendingAudio) void transcribe(pendingAudio); }} audioUrl={audioUrl} onReviewNotes={() => setPhase("notes")}
     onSaveNotes={saveNotes} onSaveDraft={saveDraft} onNotesChange={(notes) => notes && updateDraft(id, { notes })} onGoPrescription={() => setPhase("prescription")}
     onMedicineChange={(medicineId, field, value) => setMedicines(draft.medicines.map((medicine) => medicine.id === medicineId ? { ...medicine, [field]: value } : medicine))}
     onAddMedicine={() => setMedicines([...draft.medicines, { id: `med-${Date.now()}`, name: "", strength: "", dosage: "", route: "Oral", frequency: "", duration: "", instructions: "" }])}

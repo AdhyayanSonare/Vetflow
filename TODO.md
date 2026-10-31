@@ -24,8 +24,8 @@
 ## 4. Voice consultation and AI documentation
 - [x] Allow the user to select Bruno, view previous history, start a new consultation, enter basic details, and start a voice recording flow.
 - [x] Provide selected patient/owner info, previous history, large microphone control, live transcription area, duration, waveform, and states Ready, Recording, Paused, Processing, and Transcription Completed.
-- [x] Provide Start Recording, Pause, Resume, Stop, Upload Audio, and simulated transcription fallback controls; use the provided sample consultation verbatim in the demo.
-- [x] Show “Analyzing Consultation…” followed by “Consultation Successfully Transcribed.”
+- [x] Provide Start Recording, Pause, Resume, Stop, Upload Audio, and Upload Audio controls backed by real MediaRecorder capture and Groq Whisper transcription (no canned transcript).
+- [x] Show a transcribing state followed by the real transcript, with error and retry states.
 - [x] Show editable structured notes for Bruno: vomiting, loss of appetite, reduced activity; duration about one day; temperature 102°F; mild dehydration; diagnosis pending doctor confirmation; treatment as specified by veterinarian; follow-up after five days.
 - [x] Distinguish speech-extracted content from AI suggestions and never invent clinical findings, diagnosis, or medications; allow review/edit/save.
 
