@@ -94,6 +94,12 @@ button:disabled { cursor: not-allowed; opacity: .62; }
 .search-results button:hover { background: var(--canvas); }
 .search-results button > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .search-results strong { font-size: 11px; }
+.search-toggle { display: inline-flex; align-items: center; justify-content: center; padding: 0; color: inherit; background: transparent; cursor: text; }
+.search-close { display: none; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; color: var(--ink-soft); background: transparent; }
+.search-results button.active { background: var(--canvas); }
+.search-results strong em { margin-left: 4px; color: var(--muted); font-size: 9px; font-style: normal; font-weight: 500; }
+.search-empty { display: flex; flex-direction: column; gap: 4px; padding: 12px 10px; }
+.search-empty button { width: auto; margin-top: 6px; padding: 8px 10px; color: var(--forest); background: var(--forest-soft); font-size: 11px; font-weight: 700; }
 .search-results small { overflow: hidden; color: var(--muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .topbar-date { display: flex; flex-direction: column; gap: 2px; white-space: nowrap; }
 .topbar-date span { color: var(--muted); font-size: 9px; }
@@ -567,9 +573,17 @@ button:disabled { cursor: not-allowed; opacity: .62; }
   .topbar { height: 60px; padding: 0 15px; }
   .content-area { padding: 23px 15px 40px; }
   .topbar-right { gap: 5px; }
-  .global-search { width: 32px; padding: 0 8px; border-color: transparent; background: transparent; }
+  .global-search { width: 40px; height: 40px; justify-content: center; padding: 0; border-color: transparent; background: transparent; }
   .global-search input, .global-search kbd { display: none; }
   .global-search svg { color: var(--ink-soft); }
+  .search-toggle { width: 40px; height: 40px; cursor: pointer; }
+  .global-search.open { position: fixed; top: 0; right: 0; left: 0; z-index: 70; width: auto; height: 60px; justify-content: flex-start; gap: 4px; padding: 0 6px 0 10px; background: white; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; }
+  .global-search.open input { display: block; flex: 1; font-size: 16px; }
+  .global-search.open .search-close { display: inline-flex; }
+  .global-search.open .search-results { position: fixed; top: 61px; right: 0; left: 0; max-height: calc(100vh - 61px); overflow-y: auto; border-width: 0 0 1px; border-radius: 0; }
+  .search-results button { min-height: 52px; }
+  .search-results strong { font-size: 13px; }
+  .search-results small { font-size: 11px; white-space: normal; }
   .doctor-avatar { width: 28px; height: 28px; }
   .page-header, .dashboard-header { align-items: flex-start; flex-direction: column; gap: 15px; }
   .page-header .button, .header-actions { width: 100%; }

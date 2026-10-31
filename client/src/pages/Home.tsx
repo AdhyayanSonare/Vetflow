@@ -42,6 +42,7 @@ import { useLocation } from "wouter";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { VoiceError, transcribeAudioBlob, validateAudio } from "@/lib/voice";
 import { extractConsultationDetails } from "@/lib/extraction";
+import { searchPatients } from "@/lib/patientSearch";
 
 type ViewKey = "dashboard" | "patients" | "consultations" | "prescriptions" | "inventory" | "reports" | "settings";
 type Patient = {
@@ -191,6 +192,11 @@ export default function Home() {
   const [showRegister, setShowRegister] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [resultsVisible, setResultsVisible] = useState(false);
+  const [activeResult, setActiveResult] = useState(0);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [patientSearch, setPatientSearch] = useState("");
   const [speciesFilter, setSpeciesFilter] = useState("All species");
   const [detailConsultation, setDetailConsultation] = useState<Consultation | null>(null);
@@ -264,6 +270,26 @@ export default function Home() {
     setLocation("/patients");
     setSidebarOpen(false);
   };
+
+  const openSearch = () => {
+    setSearchOpen(true);
+    setResultsVisible(true);
+    window.setTimeout(() => searchInputRef.current?.focus(), 0);
+  };
+  const closeSearch = () => { setSearchOpen(false); setResultsVisible(false); setGlobalSearch(""); setActiveResult(0); };
+  const pickResult = (id: string) => { openPatient(id); closeSearch(); };
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); openSearch(); }
+    };
+    const onPointerDown = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) { setResultsVisible(false); setSearchOpen(false); }
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("mousedown", onPointerDown);
+    return () => { window.removeEventListener("keydown", onKey); window.removeEventListener("mousedown", onPointerDown); };
+  }, []);
 
   const startConsultation = (patient = selectedPatient) => {
     const newConsultation: Consultation = {
@@ -436,8 +462,8 @@ export default function Home() {
     notify(`${patient.name} registered as ${patient.id}`);
   };
 
-  const globalResults = globalSearch.trim() ? state.patients.filter((patient) => `${patient.name} ${patient.owner} ${patient.id}`.toLowerCase().includes(globalSearch.toLowerCase())) : [];
-  const filteredPatients = state.patients.filter((patient) => `${patient.name} ${patient.owner} ${patient.id} ${patient.breed}`.toLowerCase().includes(patientSearch.toLowerCase()) && (speciesFilter === "All species" || patient.species === speciesFilter));
+  const globalResults = globalSearch.trim() ? searchPatients(state.patients, globalSearch, 8) : [];
+  const filteredPatients = searchPatients(state.patients, patientSearch).filter((patient) => speciesFilter === "All species" || patient.species === speciesFilter);
 
   const renderView = () => {
     if (view === "dashboard") return <Dashboard patients={state.patients ?? seedPatients} consultations={state.consultations ?? seedConsultations} onRegister={() => setShowRegister(true)} onNewConsultation={() => startConsultation()} onPatients={() => navigate("patients")} onPrescriptions={() => navigate("prescriptions")} onOpenPatient={openPatient} onOpenConsultation={setDetailConsultation} />;
@@ -458,7 +484,7 @@ export default function Home() {
     </aside>
     {sidebarOpen && <button className="sidebar-scrim" aria-label="Close menu" onClick={() => setSidebarOpen(false)} />}
     <main className={`main-area ${sidebarCollapsed ? "main-collapsed" : ""}`}>
-      <header className="topbar"><div className="mobile-top-brand"><IconButton label="Open navigation" onClick={() => setSidebarOpen(true)}><Menu size={21} /></IconButton><div className="brand-mark small"><Leaf size={14} fill="currentColor" /><PawPrint size={13} /></div><strong>VetFlow<span> AI</span></strong></div><div className="topbar-left"><div className="breadcrumb"><span>Vetspring Animal Hospital</span><ChevronRight size={14} /><strong>{navItems.find((item) => item.key === view)?.label}</strong></div></div><div className="topbar-right"><div className="global-search"><Search size={16} /><input value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} placeholder="Search patients, owners..." /><kbd>⌘ K</kbd>{globalResults.length > 0 && <div className="search-results">{globalResults.map((patient) => <button key={patient.id} onClick={() => { openPatient(patient.id); setGlobalSearch(""); }}><Avatar patient={patient} size="sm" /><span><strong>{patient.name}</strong><small>{patient.owner} · {patient.id}</small></span></button>)}</div>}</div><div className="topbar-date"><span>Today</span><strong>31 Oct 2026</strong></div><div className="notification-wrap"><IconButton label="Notifications" onClick={() => setShowNotifications((value) => !value)}><Bell size={18} /><i /></IconButton>{showNotifications && <div className="notification-popover"><div className="popover-heading"><strong>Notifications</strong><Badge tone="mint">3 new</Badge></div><div className="notification-item"><div className="notification-icon mint"><CheckCircle2 size={16} /></div><div><strong>Prescription approved</strong><span>Bruno’s record is up to date.</span><small>8 min ago</small></div></div><div className="notification-item"><div className="notification-icon amber"><Clock3 size={16} /></div><div><strong>Follow-up due today</strong><span>7 patients are awaiting review.</span><small>32 min ago</small></div></div></div>}</div><div className="doctor-menu"><div className="doctor-avatar">DS</div><div className="doctor-copy"><strong>Dr. Sharma</strong><span>Veterinarian</span></div><ChevronDown size={14} /></div></div></header>
+      <header className="topbar"><div className="mobile-top-brand"><IconButton label="Open navigation" onClick={() => setSidebarOpen(true)}><Menu size={21} /></IconButton><div className="brand-mark small"><Leaf size={14} fill="currentColor" /><PawPrint size={13} /></div><strong>VetFlow<span> AI</span></strong></div><div className="topbar-left"><div className="breadcrumb"><span>Vetspring Animal Hospital</span><ChevronRight size={14} /><strong>{navItems.find((item) => item.key === view)?.label}</strong></div></div><div className="topbar-right"><div className={`global-search ${searchOpen ? "open" : ""}`} ref={searchRef} role="search"><button type="button" className="search-toggle" aria-label="Search patients" onClick={openSearch}><Search size={16} /></button><input ref={searchInputRef} value={globalSearch} aria-label="Search patients" autoComplete="off" onFocus={() => setResultsVisible(true)} onChange={(event) => { setGlobalSearch(event.target.value); setResultsVisible(true); setActiveResult(0); }} onKeyDown={(event) => { if (event.key === "ArrowDown") { event.preventDefault(); setActiveResult((value) => Math.min(value + 1, globalResults.length - 1)); } else if (event.key === "ArrowUp") { event.preventDefault(); setActiveResult((value) => Math.max(value - 1, 0)); } else if (event.key === "Enter" && globalResults[activeResult]) { event.preventDefault(); pickResult(globalResults[activeResult].id); } else if (event.key === "Escape") { closeSearch(); (event.target as HTMLInputElement).blur(); } }} placeholder="Search name, owner, phone, breed…" /><kbd>⌘ K</kbd>{searchOpen && <button type="button" className="search-close" aria-label="Close search" onClick={closeSearch}><X size={18} /></button>}{resultsVisible && globalSearch.trim() && <div className="search-results" role="listbox">{globalResults.length > 0 ? globalResults.map((patient, index) => <button key={patient.id} role="option" aria-selected={index === activeResult} className={index === activeResult ? "active" : ""} onMouseEnter={() => setActiveResult(index)} onClick={() => pickResult(patient.id)}><Avatar patient={patient} size="sm" /><span><strong>{patient.name} <em>{patient.species} · {patient.breed}</em></strong><small>{patient.owner} · {patient.phone} · {patient.id}</small></span></button>) : <div className="search-empty"><strong>No patient found for “{globalSearch.trim()}”</strong><small>Check the spelling, or try the owner’s name or phone number.</small><button onClick={() => { closeSearch(); setShowRegister(true); }}><UserPlus size={14} /> Register new patient</button></div>}</div>}</div><div className="topbar-date"><span>Today</span><strong>31 Oct 2026</strong></div><div className="notification-wrap"><IconButton label="Notifications" onClick={() => setShowNotifications((value) => !value)}><Bell size={18} /><i /></IconButton>{showNotifications && <div className="notification-popover"><div className="popover-heading"><strong>Notifications</strong><Badge tone="mint">3 new</Badge></div><div className="notification-item"><div className="notification-icon mint"><CheckCircle2 size={16} /></div><div><strong>Prescription approved</strong><span>Bruno’s record is up to date.</span><small>8 min ago</small></div></div><div className="notification-item"><div className="notification-icon amber"><Clock3 size={16} /></div><div><strong>Follow-up due today</strong><span>7 patients are awaiting review.</span><small>32 min ago</small></div></div></div>}</div><div className="doctor-menu"><div className="doctor-avatar">DS</div><div className="doctor-copy"><strong>Dr. Sharma</strong><span>Veterinarian</span></div><ChevronDown size={14} /></div></div></header>
       <div className="content-area">{renderView()}</div>
     </main>
     {showRegister && <RegisterModal onClose={() => setShowRegister(false)} onSave={savePatient} />}
