@@ -470,7 +470,7 @@ button:disabled { cursor: not-allowed; opacity: .62; }
 
 .report-grid { display: grid; grid-template-columns: 1.35fr .8fr .8fr; gap: 13px; }
 .report-highlight, .report-stat { min-height: 150px; padding: 18px; }
-.report-highlight { position: relative; overflow: hidden; background: var(--forest); border-color: var(--forest); }
+.report-highlight { position: relative; overflow: hidden; padding-bottom: 46px; background: var(--forest); border-color: var(--forest); }
 .report-highlight::after { position: absolute; right: -30px; bottom: -80px; width: 210px; height: 210px; border: 1px solid rgba(255,255,255,.12); border-radius: 50%; content: ""; box-shadow: 0 0 0 26px rgba(255,255,255,.035), 0 0 0 53px rgba(255,255,255,.025); }
 .report-highlight .eyebrow, .report-highlight p, .report-foot { color: rgba(236, 249, 243, .7); }
 .report-highlight strong { display: block; margin: 13px 0 4px; color: white; font-size: 31px; letter-spacing: -.07em; }
@@ -628,6 +628,32 @@ button:disabled { cursor: not-allowed; opacity: .62; }
   .modal-backdrop { align-items: flex-end; padding: 0; }.modal-card { max-height: 93vh; border-radius: 16px 16px 0 0; }.modal-header, .modal-form, .modal-footer { padding-right: 16px; padding-left: 16px; }.form-grid { grid-template-columns: 1fr; }.upload-row { align-items: flex-start; flex-direction: column; }.upload-box { width: 100%; }.modal-footer { align-items: flex-start; flex-direction: column; }.modal-footer > div { width: 100%; }.modal-footer .button { flex: 1; }.detail-modal .modal-header { align-items: flex-start; }.detail-title { align-items: flex-start; }.detail-header-actions { align-items: flex-start; }.detail-header-actions .badge { display: none; }.detail-body { padding: 16px; }.detail-notes-grid { grid-template-columns: 1fr; }.detail-medicines > div { align-items: flex-start; flex-direction: column; gap: 4px; }.audit-line { align-items: flex-start; flex-wrap: wrap; }.audit-line small { margin-left: 21px; }
   .toast-feedback { right: 16px; bottom: 16px; }
 }
+
+/* Phone refinements: fit the stepper, comfortable tap targets, no iOS input zoom, no duplicate toast. */
+@media (max-width: 620px) {
+  .consultation-stepper { overflow: visible; padding-bottom: 0; }
+  .step { min-width: 0; flex-direction: column; gap: 6px; text-align: center; font-size: 10px; line-height: 1.2; }
+  .step:not(:last-child)::after { top: 14px; right: -50%; left: 50%; z-index: 0; }
+  .step-number { margin: 0 auto; }
+  .toast-feedback { display: none; }
+  .add-medicine { min-height: 44px; }
+  .button { min-height: 44px; font-size: 13px; }
+  .icon-button { width: 40px; height: 40px; }
+  .editable-note textarea, .field input, .field select, .search-field input, .modal-form input, .modal-form select, .modal-form textarea { font-size: 16px; }
+  .editable-note > span, .field > span { font-size: 11px; }
+  .upload-audio { font-size: 11px; }
+  .upload-audio label, .upload-audio button { min-height: 44px; padding: 0 14px; font-size: 13px; }
+  .documentation-footer > span, .prescription-footer > span { font-size: 11px; }
+  .transcript-details > summary { cursor: pointer; list-style: none; min-height: 32px; }
+  .transcript-details > summary::-webkit-details-marker { display: none; }
+}
+@media (max-width: 480px) {
+  .medicine-fields { grid-template-columns: 1fr; }
+  .field-wide { grid-column: auto; }
+}
+.transcript-details > summary { cursor: pointer; list-style: none; }
+.transcript-details > summary::-webkit-details-marker { display: none; }
+.transcript-details:not([open]) > p { display: none; }
 
 @media print {
   .sidebar, .topbar, .page-header, .demo-banner, .table-toolbar, .prescription-document .document-toolbar, .toast-feedback { display: none !important; }

@@ -87,7 +87,12 @@ export async function extractConsultation(transcript: string): Promise<Extractio
       ...parsed.data.notes,
     };
     const medicines = groundMedicines(
-      parsed.data.medicines.map(m => ({ name: "", strength: "", dosage: "", route: "", frequency: "", duration: "", instructions: "", ...m })),
+      parsed.data.medicines.map(m => {
+        const full = { name: "", strength: "", dosage: "", route: "", frequency: "", duration: "", instructions: "", ...m };
+        // The model sometimes repeats a single stated amount in both fields; keep it only as the dose.
+        if (full.strength && full.strength.toLowerCase() === full.dosage.toLowerCase()) full.strength = "";
+        return full;
+      }),
       transcript
     );
     return { ok: true, notes, medicines, model };

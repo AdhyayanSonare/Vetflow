@@ -71,6 +71,12 @@ describe("POST /api/consultation/extract (Groq mocked)", () => {
     expect(json.medicines).toEqual([]);
   });
 
+  it("does not repeat a single stated amount as both strength and dosage", async () => {
+    groq.mockResolvedValueOnce(groqReply({ notes: {}, medicines: [{ name: "Ondansetron", strength: "4 milligrams", dosage: "4 milligrams" }] }));
+    const json = await (await post({ transcript })).json();
+    expect(json.medicines[0]).toMatchObject({ strength: "", dosage: "4 milligrams" });
+  });
+
   it("validates input", async () => {
     expect((await post({})).status).toBe(400);
     expect((await post({ transcript: "   " })).status).toBe(400);
