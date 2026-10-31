@@ -3,12 +3,10 @@ import type { LucideIcon } from "lucide-react";
 import { Activity, ArrowLeft, Bell, CheckCircle2, ChevronDown, ChevronRight, ClipboardList, Clock3, FileText, FolderOpen, Home as HomeIcon, LayoutDashboard, Leaf, Menu, Mic, MoreHorizontal, PawPrint, Search, Settings, Stethoscope, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Redirect, Route, Switch, useLocation, useParams, useSearch } from "wouter";
-import { useAudioRecorder } from "@/hooks/useAudioRecorder";
-import { extractConsultationDetails } from "@/lib/extraction";
-import { VoiceError, transcribeAudioBlob, validateAudio } from "@/lib/voice";
 import type { Consultation, Medicine, ViewKey } from "@/vetflow/data";
 import { patientMeta, Sheet, SpeciesIcon } from "@/vetflow/kit";
 import { ConsultationDetailModal, RegisterModal } from "@/vetflow/modals";
+import { extract, PipelineError, transcribe as transcribeAudio, validateAudio } from "@/vetflow/pipeline";
 import type { ConsultDraft, Phase } from "@/vetflow/store";
 import { StoreProvider, todayLabel, useStore } from "@/vetflow/store";
 import { Avatar, Badge, Button, EmptyState, IconButton } from "@/vetflow/ui";
@@ -244,8 +242,9 @@ function ConsultationRoute() {
 }
 
 /**
- * The live consultation: record (or upload) → Groq Whisper transcript → AI
- * extraction of notes and medicines → the vet reviews, edits and approves.
+ * The live consultation: record (or upload) → transcript → AI extraction of
+ * notes and medicines → the vet reviews, edits and approves. Transcription and
+ * extraction run on the backend; `vetflow/pipeline.ts` stands in for them here.
  * The vet never writes the prescription from scratch; they correct the draft.
  */
 function ActiveConsultation({ draft }: { draft: ConsultDraft }) {
@@ -262,13 +261,11 @@ function ActiveConsultation({ draft }: { draft: ConsultDraft }) {
   const elapsedRef = useRef(elapsed);
   elapsedRef.current = elapsed;
 
-  const recorder = useAudioRecorder();
   const runRef = useRef(0);
   const [voiceError, setVoiceError] = useState("");
   const [extractStatus, setExtractStatus] = useState<ExtractStatus>("idle");
   const [extractError, setExtractError] = useState("");
-  const [pendingAudio, setPendingAudio] = useState<{ blob: Blob; name?: string } | null>(null);
-  const [audioUrl, setAudioUrl] = useState("");
+  const [pendingAudio, setPendingAudio] = useState<{ name: string } | null>(null);
 
   const setPhase = (next: Phase, patch: Partial<ConsultDraft> = {}) => updateDraft(id, { phase: next, elapsed: elapsedRef.current, ...patch });
 
@@ -276,7 +273,7 @@ function ActiveConsultation({ draft }: { draft: ConsultDraft }) {
   const withEdits = (patch: Partial<Consultation>): Consultation => ({ ...consultation, notes: draft.notes, ...patch });
 
   const reportVoiceError = (error: unknown) => {
-    const message = error instanceof VoiceError ? error.message : "Something went wrong with the recording. Please try again.";
+    const message = error instanceof PipelineError ? error.message : "Something went wrong with the recording. Please try again.";
     setVoiceError(message);
   };
 
@@ -284,28 +281,28 @@ function ActiveConsultation({ draft }: { draft: ConsultDraft }) {
     setExtractStatus("running");
     setExtractError("");
     try {
-      const result = await extractConsultationDetails(base.transcription);
+      const result = await extract(base.transcription);
       if (run !== runRef.current) return;
       updateDraft(id, {
         consultation: { ...base, complaint: result.notes.complaint || base.complaint },
         notes: { ...result.notes, diagnosis: result.notes.diagnosis || "Pending doctor’s confirmation" },
-        medicines: result.medicines.map((medicine, index) => ({ id: `med-${Date.now()}-${index}`, ...medicine })),
+        medicines: result.medicines,
       });
       setExtractStatus("done");
     } catch (error) {
       if (run !== runRef.current) return;
       setExtractStatus("failed");
-      setExtractError(error instanceof VoiceError ? error.message : "Could not extract details. Retry, or fill the notes in manually.");
+      setExtractError(error instanceof PipelineError ? error.message : "Could not extract details. Retry, or fill the notes in manually.");
     }
   };
 
-  const transcribe = async (audio: { blob: Blob; name?: string }) => {
+  const transcribe = async (audio: { name: string }) => {
     const run = ++runRef.current;
     setPendingAudio(audio);
     setVoiceError("");
     setPhase("processing");
     try {
-      const result = await transcribeAudioBlob(audio.blob, { name: audio.name });
+      const result = await transcribeAudio(patient);
       if (run !== runRef.current) return;
       const withTranscript = { ...consultation, transcription: result.transcript };
       setPhase("transcribed", { consultation: withTranscript });
@@ -340,38 +337,15 @@ function ActiveConsultation({ draft }: { draft: ConsultDraft }) {
     return () => window.clearInterval(timer);
   }, [phase]);
 
-  useEffect(() => {
-    if (!pendingAudio) { setAudioUrl(""); return; }
-    const url = URL.createObjectURL(pendingAudio.blob);
-    setAudioUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [pendingAudio]);
-
   const start = async () => {
     setVoiceError("");
     setExtractStatus("idle");
     setPendingAudio(null);
-    try {
-      await recorder.start();
-    } catch (error) {
-      reportVoiceError(error);
-      return;
-    }
     elapsedRef.current = 0;
     setElapsed(0);
     setPhase("recording");
   };
-  const stop = async () => {
-    let blob: Blob;
-    try {
-      blob = await recorder.stop();
-    } catch (error) {
-      setPhase("ready");
-      reportVoiceError(error);
-      return;
-    }
-    await transcribe({ blob, name: "consultation-recording" });
-  };
+  const stop = () => transcribe({ name: "consultation-recording" });
   const uploadAudio = async (file: File) => {
     try {
       validateAudio(file);
@@ -379,7 +353,7 @@ function ActiveConsultation({ draft }: { draft: ConsultDraft }) {
       reportVoiceError(error);
       return;
     }
-    await transcribe({ blob: file, name: file.name });
+    await transcribe({ name: file.name });
   };
 
   const saveNotes = (quiet = false) => {
@@ -403,13 +377,13 @@ function ActiveConsultation({ draft }: { draft: ConsultDraft }) {
 
   const screenKey = ["ready", "recording", "paused"].includes(phase) ? "record" : phase === "processing" ? "transcribed" : phase;
   return <div key={screenKey} className="v2-enter"><ConsultationView patients={store.patients} patient={patient} consultation={consultation} phase={phase} elapsed={elapsed} notes={draft.notes} medicines={draft.medicines}
-    voiceError={voiceError} canRetry={Boolean(pendingAudio)} onRetry={() => { if (pendingAudio) void transcribe(pendingAudio); }} audioUrl={audioUrl}
+    voiceError={voiceError} canRetry={Boolean(pendingAudio)} onRetry={() => { if (pendingAudio) void transcribe(pendingAudio); }} audioUrl=""
     extractStatus={extractStatus} extractError={extractError} onRetryExtract={() => void extractDetails(consultation, ++runRef.current)}
     onClose={() => setLocation("/")}
     onSelectPatient={(patientId) => { updateDraft(id, { consultation: { ...consultation, patientId } }); store.setLastPatient(patientId); }}
-    onStart={start} onPause={() => { recorder.pause(); setPhase("paused"); }} onResume={() => { recorder.resume(); setPhase("recording"); }}
+    onStart={start} onPause={() => setPhase("paused")} onResume={() => setPhase("recording")}
     onStop={stop}
-    onDiscard={() => { recorder.cancel(); setPendingAudio(null); setElapsed(0); elapsedRef.current = 0; setPhase("ready"); }}
+    onDiscard={() => { setPendingAudio(null); setElapsed(0); elapsedRef.current = 0; setPhase("ready"); }}
     onUploadAudio={uploadAudio}
     onNotesChange={(notes) => updateDraft(id, { notes })} onSaveNotes={saveNotes} onGoNotes={() => setPhase("notes")} onGoPrescription={() => setPhase("prescription")}
     onMedicinesChange={setMedicines} onSaveDraft={saveDraft} onApprove={approve}

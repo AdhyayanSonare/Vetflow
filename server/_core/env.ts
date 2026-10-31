@@ -9,7 +9,4 @@ export const ENV = {
   get isProduction() { return process.env.NODE_ENV === "production"; },
   get forgeApiUrl() { return process.env.MANUS_API_URL ?? ""; },
   get forgeApiKey() { return process.env.MANUS_API_KEY ?? ""; },
-  get groqApiUrl() { return process.env.GROQ_API_URL ?? "https://api.groq.com/openai/v1"; },
-  get groqExtractionModel() { return process.env.GROQ_EXTRACTION_MODEL ?? "openai/gpt-oss-120b"; },
-  get groqApiKey() { return process.env.GROQ_API_KEY ?? ""; },
 };

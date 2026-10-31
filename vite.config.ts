@@ -96,12 +96,6 @@ function vitePluginManusDebugCollector(): Plugin {
       };
     },
 
-    // The collector records every console line, request and keystroke. It is
-    // only injected in dev, so keep the file itself out of production output.
-    closeBundle() {
-      fs.rmSync(path.join(PROJECT_ROOT, "dist/public/__manus__"), { recursive: true, force: true });
-    },
-
     configureServer(server: ViteDevServer) {
       // POST /__manus__/logs: Browser sends logs (written directly to files)
       server.middlewares.use("/__manus__/logs", (req, res, next) => {
