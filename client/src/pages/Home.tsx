@@ -6,6 +6,7 @@ import { Redirect, Route, Switch, useLocation, useParams, useSearch } from "wout
 import type { Consultation, Medicine, ViewKey } from "@/vetflow/data";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { VoiceError, transcribeAudioBlob, validateAudio } from "@/lib/voice";
+import { extractConsultationDetails } from "@/lib/extraction";
 import { AppointmentModal, ConsultationDetailModal, RegisterModal } from "@/vetflow/modals";
 import type { ConsultDraft, Phase } from "@/vetflow/store";
 import { StoreProvider, todayLabel, useStore } from "@/vetflow/store";
@@ -228,6 +229,8 @@ function ActiveConsultation({ draft }: { draft: ConsultDraft }) {
   const recorder = useAudioRecorder();
   const runRef = useRef(0);
   const [voiceError, setVoiceError] = useState("");
+  const [extractStatus, setExtractStatus] = useState<"idle" | "running" | "done" | "failed">("idle");
+  const [extractError, setExtractError] = useState("");
   const [pendingAudio, setPendingAudio] = useState<{ blob: Blob; name?: string } | null>(null);
   const [audioUrl, setAudioUrl] = useState("");
   useEffect(() => {
@@ -248,6 +251,28 @@ function ActiveConsultation({ draft }: { draft: ConsultDraft }) {
     setVoiceError(message);
     toast.error(message);
   };
+  const extractDetails = async (base: Consultation, run: number) => {
+    setExtractStatus("running");
+    setExtractError("");
+    try {
+      const result = await extractConsultationDetails(base.transcription);
+      if (run !== runRef.current) return;
+      updateDraft(id, {
+        consultation: { ...base, complaint: result.notes.complaint || base.complaint },
+        notes: { ...result.notes, diagnosis: result.notes.diagnosis || "Pending doctor’s confirmation" },
+        medicines: result.medicines.map((medicine, index) => ({ id: `med-${Date.now()}-${index}`, ...medicine })),
+      });
+      setExtractStatus("done");
+      toast.success("Clinical notes and prescription extracted — please review before saving");
+    } catch (error) {
+      if (run !== runRef.current) return;
+      const message = error instanceof VoiceError ? error.message : "Could not extract details. Retry, or fill the notes in manually.";
+      setExtractStatus("failed");
+      setExtractError(message);
+      toast.error(message);
+    }
+  };
+
   const transcribe = async (audio: { blob: Blob; name?: string }) => {
     const run = ++runRef.current;
     setPendingAudio(audio);
@@ -256,8 +281,10 @@ function ActiveConsultation({ draft }: { draft: ConsultDraft }) {
     try {
       const result = await transcribeAudioBlob(audio.blob, { name: audio.name });
       if (run !== runRef.current) return;
-      setPhase("transcribed", { consultation: { ...consultation, transcription: result.transcript } });
-      toast.success("Transcript ready — review it, then complete the clinical notes");
+      const withTranscript = { ...consultation, transcription: result.transcript };
+      setPhase("transcribed", { consultation: withTranscript });
+      toast.success("Transcript ready — extracting clinical details");
+      void extractDetails(withTranscript, run);
     } catch (error) {
       if (run !== runRef.current) return;
       setPhase("ready");
@@ -266,6 +293,7 @@ function ActiveConsultation({ draft }: { draft: ConsultDraft }) {
   };
   const start = async () => {
     setVoiceError("");
+    setExtractStatus("idle");
     setPendingAudio(null);
     try {
       await recorder.start();
@@ -322,7 +350,7 @@ function ActiveConsultation({ draft }: { draft: ConsultDraft }) {
   return <ConsultationView patients={store.patients} selectedPatient={patient} patientConsultations={patientConsultations} activeConsultation={consultation} phase={phase} elapsed={elapsed} notesDraft={draft.notes} medicinesDraft={draft.medicines}
     onSelectPatient={(patientId) => { updateDraft(id, { consultation: { ...consultation, patientId } }); store.setLastPatient(patientId); }}
     onStart={start} onPause={() => { recorder.pause(); setPhase("paused"); }} onResume={() => { recorder.resume(); setPhase("recording"); }}
-    onStop={stop} onUploadAudio={uploadAudio} voiceError={voiceError} canRetry={Boolean(pendingAudio)} onRetry={() => { if (pendingAudio) void transcribe(pendingAudio); }} audioUrl={audioUrl} onReviewNotes={() => setPhase("notes")}
+    onStop={stop} onUploadAudio={uploadAudio} voiceError={voiceError} canRetry={Boolean(pendingAudio)} onRetry={() => { if (pendingAudio) void transcribe(pendingAudio); }} audioUrl={audioUrl} extractStatus={extractStatus} extractError={extractError} onRetryExtract={() => void extractDetails(consultation, ++runRef.current)} onReviewNotes={() => setPhase("notes")}
     onSaveNotes={saveNotes} onSaveDraft={saveDraft} onNotesChange={(notes) => notes && updateDraft(id, { notes })} onGoPrescription={() => setPhase("prescription")}
     onMedicineChange={(medicineId, field, value) => setMedicines(draft.medicines.map((medicine) => medicine.id === medicineId ? { ...medicine, [field]: value } : medicine))}
     onAddMedicine={() => setMedicines([...draft.medicines, { id: `med-${Date.now()}`, name: "", strength: "", dosage: "", route: "Oral", frequency: "", duration: "", instructions: "" }])}
