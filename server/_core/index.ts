@@ -6,12 +6,20 @@ import { registerOAuthRoutes } from "./oauth";
 import { publicPlatformScript } from "./publicConfig";
 import { appRouter } from "../routers";
 import { registerVoiceRoutes } from "../voiceUpload";
+import { sitePassword } from "../sitePassword";
+import { registerExtractionRoutes } from "../consultationExtract";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 
 async function startServer() {
   const app = express();
   const server = createServer(app);
+  // Behind the host's proxy, use the real client IP (rate limiting) and honour HTTPS.
+  if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
+  if (process.env.NODE_ENV === "production" && !process.env.SITE_PASSWORD) {
+    console.warn("SITE_PASSWORD is not set: the site and its Groq-backed endpoints are open to anyone with the URL.");
+  }
+  app.use(sitePassword());
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
@@ -21,6 +29,7 @@ async function startServer() {
   });
   registerOAuthRoutes(app);
   registerVoiceRoutes(app);
+  registerExtractionRoutes(app);
   // tRPC API
   app.use(
     "/api/trpc",

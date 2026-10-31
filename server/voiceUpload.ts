@@ -22,7 +22,7 @@ function fail(res: Response, status: number, code: VoiceErrorCode, message: stri
 }
 
 /** Small in-memory per-client limiter: transcription spends API credit and handles patient audio. */
-function createRateLimiter(now: () => number = Date.now) {
+export function createRateLimiter(now: () => number = Date.now) {
   const hits = new Map<string, number[]>();
   return (key: string): boolean => {
     const t = now();
