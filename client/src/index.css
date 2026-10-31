@@ -166,6 +166,8 @@ button:disabled { cursor: not-allowed; opacity: .62; }
 .stat-more { position: absolute; top: 15px; right: 14px; color: #abb8b2; }
 .dashboard-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(280px, .8fr); gap: 13px; }
 .lower-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.single-grid { grid-template-columns: minmax(0, 1fr); }
+.single-grid .quick-action-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 18px 18px 12px; }
 .card-heading h3 { margin: 4px 0 0; color: var(--ink); font-size: 14px; letter-spacing: -.025em; }
 .muted-icon { color: var(--muted); }
@@ -555,6 +557,7 @@ button:disabled { cursor: not-allowed; opacity: .62; }
   .doctor-copy, .doctor-menu > svg { display: none; }
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
   .dashboard-grid, .lower-grid { grid-template-columns: 1fr; }
+  .single-grid .quick-action-list { grid-template-columns: 1fr; }
   .consultation-layout { grid-template-columns: 1fr; }
   .consultation-aside { display: grid; grid-template-columns: 1fr 1fr; }
   .report-grid { grid-template-columns: 1fr 1fr; }
