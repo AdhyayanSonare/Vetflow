@@ -1,0 +1,1 @@
+{"routes":[{"path":"/","title":"VetFlow AI Dashboard"},{"path":"/patients","title":"Patients"},{"path":"/consultations","title":"Consultations"},{"path":"/prescriptions","title":"Prescriptions"},{"path":"/appointments","title":"Appointments"},{"path":"/inventory","title":"Inventory"},{"path":"/reports","title":"Reports"},{"path":"/settings","title":"Settings"}]}
