@@ -1,86 +1,91 @@
-import { ChevronRight, FileText, Mic, Phone, Search, Stethoscope } from "lucide-react";
-import type { Appointment, Consultation, Patient } from "../data";
-import { patientMeta, SpeciesIcon, statusTone } from "../kit";
+import { ChevronRight, FileText, Mic, Search, Stethoscope, UserPlus } from "lucide-react";
+import type { Consultation, Patient } from "../data";
+import { hasAllergy, SpeciesIcon } from "../kit";
 import type { ConsultDraft } from "../store";
+import { todayLabel } from "../store";
 
 const icon = { size: 20, strokeWidth: 1.75 } as const;
-
-/** Minutes until a "10:30 AM" style time today; negative once it has passed. */
-function minutesUntil(time: string, now = new Date()) {
-  const match = time.match(/(\d+):(\d+)\s*(AM|PM)?/i);
-  if (!match) return null;
-  let hours = Number(match[1]) % 12;
-  if (match[3]?.toUpperCase() === "PM") hours += 12;
-  return hours * 60 + Number(match[2]) - (now.getHours() * 60 + now.getMinutes());
-}
-
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
+const parseDate = (value: string) => { const time = Date.parse(value); return Number.isNaN(time) ? 0 : time; };
+const stage: Record<string, string> = { ready: "Not recorded yet", recording: "Recording", paused: "Paused", processing: "Transcribing", transcribed: "Drafting notes", notes: "Notes in review", prescription: "Prescription in review" };
 
-function shortTime(time: string) {
-  return time.replace(/\s*(AM|PM)$/i, "");
+/** Static wave lines behind the hero: the product's one motif, quiet at rest. */
+function HeroWaves() {
+  const line = (amp: number, period: number, y: number) => {
+    const points: string[] = [];
+    for (let x = 0; x <= 400; x += 4) points.push(`${x === 0 ? "M" : "L"}${x} ${(y - amp * Math.sin((2 * Math.PI * x) / period)).toFixed(1)}`);
+    return points.join(" ");
+  };
+  return <svg className="hero-waves" viewBox="0 0 400 160" preserveAspectRatio="none" aria-hidden="true">
+    <path d={line(14, 160, 112)} />
+    <path d={line(9, 110, 132)} />
+    <path d={line(5, 70, 148)} />
+  </svg>;
 }
 
-export function Dashboard({ patients, consultations, appointments, drafts, onStartConsult, onOpenPatient, onOpenConsultation, onResume, onSchedule, onSearch, onMenu }: { patients: Patient[]; consultations: Consultation[]; appointments: Appointment[]; drafts: Record<string, ConsultDraft>; onStartConsult: (patientId?: string) => void; onOpenPatient: (id: string) => void; onOpenConsultation: (consultation: Consultation) => void; onResume: (consultId: string) => void; onSchedule: () => void; onSearch: () => void; onMenu: () => void }) {
-  const patientFor = (appointment: Appointment) => patients.find((patient) => patient.name === appointment.pet);
-  const seen = appointments.filter((appointment) => appointment.status === "Completed").length;
-  const next = appointments.find((appointment) => appointment.status === "In Progress") ?? appointments.find((appointment) => appointment.status === "Arrived") ?? appointments.find((appointment) => appointment.status === "Upcoming");
-  const nextPatient = next ? patientFor(next) : undefined;
-  const rest = appointments.filter((appointment) => appointment !== next);
-  const draftRx = consultations.filter((consultation) => consultation.medicines.length > 0 && !consultation.approved);
-  const openConsults = Object.values(drafts).filter((draft) => !draft.consultation.approved && !draftRx.some((item) => item.id === draft.consultation.id));
-  const followUps = patients.filter((patient) => patient.followUp && patient.followUp !== "—").length;
-  const attention = draftRx.length + openConsults.length;
-  const minutes = next ? minutesUntil(next.time) : null;
-  const when = next?.status === "In Progress" ? "In consult" : minutes !== null && minutes > 0 && minutes < 120 ? `Next up · in ${minutes} min` : "Next up";
+export function Dashboard({ patients, consultations, drafts, onStartConsult, onRegister, onOpenPatient, onOpenConsultation, onResume, onSearch, onMenu }: { patients: Patient[]; consultations: Consultation[]; drafts: Record<string, ConsultDraft>; onStartConsult: () => void; onRegister: () => void; onOpenPatient: (id: string) => void; onOpenConsultation: (consultation: Consultation) => void; onResume: (consultId: string) => void; onSearch: () => void; onMenu: () => void }) {
+  const today = todayLabel();
+  const patientOf = (id: string) => patients.find((patient) => patient.id === id);
+  const openDrafts = Object.values(drafts).filter((draft) => !draft.consultation.approved && draft.phase !== "done").sort((a, b) => b.consultation.id.localeCompare(a.consultation.id));
+  const awaiting = consultations.filter((consultation) => !consultation.approved && consultation.status === "Draft" && !drafts[consultation.id]);
+  const seenToday = consultations.filter((consultation) => consultation.date === today && consultation.approved);
+  const recent = [...patients].sort((a, b) => parseDate(b.lastVisit) - parseDate(a.lastVisit)).slice(0, 8);
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
   return <div className="v2">
     <header className="page-title"><h1>Today</h1><button className="ibtn" aria-label="Search patients" onClick={onSearch}><Search size={24} strokeWidth={1.75} /></button><button className="ibtn" aria-label="Account, Dr. Sharma" onClick={onMenu}><span className="me">DS</span></button></header>
-    <p className="summary num">{new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" }).format(new Date())} · {seen} of {appointments.length} seen · {plural(draftRx.length, "draft")} · {plural(followUps, "follow-up")} due</p>
+    <p className="summary num">{new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" }).format(new Date())} · {plural(seenToday.length, "consultation")} today · {awaiting.length + openDrafts.length} waiting on you</p>
 
-    {next && <section className="next" aria-label="Next up">
-      <div className="next-top"><span className="next-time num">{shortTime(next.time)}</span><span className="next-when">{when}</span></div>
-      <div className="next-pet">
-        <span className="lead"><SpeciesIcon species={nextPatient?.species ?? "Dog"} /></span>
-        <div className="rbody"><div className="next-name">{next.pet}</div><div className="t2">{nextPatient ? patientMeta(nextPatient) : next.owner}</div></div>
-        {next.status === "Arrived" && <span className="status brand">Arrived</span>}
+    <section className="hero" aria-label="Start a consultation">
+      <HeroWaves />
+      <p className="hero-kicker">{greeting}, Dr. Sharma</p>
+      <h2 className="hero-title">Speak the visit.<br />VetFlow writes it up.</h2>
+      <p className="hero-sub">Record the consultation. Notes and the prescription are drafted from what was said, for you to check and approve.</p>
+      <div className="hero-actions">
+        <button className="btn lg hero-primary" onClick={onStartConsult}><Mic {...icon} />Start consultation</button>
+        <button className="btn lg hero-secondary" onClick={onRegister}><UserPlus {...icon} />Register patient</button>
       </div>
-      <p className="next-reason">{next.reason}</p>
-      <div className="next-actions">
-        <button className="btn lg primary" onClick={() => onStartConsult(nextPatient?.id)}><Mic {...icon} />Start consult</button>
-        {nextPatient && nextPatient.phone !== "—" && <a className="ibtn outline" href={`tel:${nextPatient.phone}`} aria-label={`Call ${nextPatient.owner}`}><Phone {...icon} /></a>}
-      </div>
-    </section>}
+    </section>
 
-    <div className="sec-h"><h2>Schedule</h2><span className="meta num">{rest.filter((appointment) => appointment.status !== "Completed").length} left</span></div>
-    {rest.length ? <ul className="list sched">{rest.map((appointment) => {
-      const patient = patientFor(appointment);
-      const done = appointment.status === "Completed";
-      return <li key={appointment.id}><button className={`row s ${done ? "done" : ""}`} onClick={() => patient && onOpenPatient(patient.id)}>
-        <span className="time num">{shortTime(appointment.time)}</span>
-        <span className="lead"><SpeciesIcon species={patient?.species ?? "Dog"} /></span>
-        <span className="rbody"><span className="t1">{appointment.pet}</span><span className="t2">{[patient?.breed, appointment.reason].filter(Boolean).join(" · ")}</span></span>
-        {appointment.status !== "Upcoming" && <span className={`status ${statusTone(done ? "Seen" : appointment.status)}`}>{done ? "Seen" : appointment.status}</span>}
-      </button></li>;
-    })}</ul> : <p className="empty">Nothing else scheduled today.</p>}
-
-    <div className="sec-h"><h2>Needs attention</h2>{attention > 0 && <span className="meta num">{attention}</span>}</div>
-    {attention ? <ul className="list att">
-      {openConsults.map((draft) => {
-        const patient = patients.find((item) => item.id === draft.consultation.patientId);
+    {openDrafts.length > 0 && <>
+      <div className="sec-h"><h2>Continue</h2><span className="meta num">{openDrafts.length}</span></div>
+      <ul className="list att">{openDrafts.map((draft) => {
+        const patient = patientOf(draft.consultation.patientId);
         return <li key={draft.consultation.id}><button className="row" onClick={() => onResume(draft.consultation.id)}>
           <span className="lead"><Stethoscope {...icon} /></span>
-          <span className="rbody"><span className="t1">Continue consultation · {patient?.name}</span><span className="t2 num">{draft.consultation.id} · {draft.phase === "ready" ? "not recorded yet" : draft.phase === "prescription" ? "prescription pending" : "notes in review"}</span></span>
+          <span className="rbody"><span className="t1">{patient?.name ?? "Patient"} · consultation</span><span className="t2 num">{stage[draft.phase] ?? "In progress"} · started {draft.consultation.time}</span></span>
           <ChevronRight size={16} className="chev" />
         </button></li>;
-      })}
-      {draftRx.map((consultation) => {
-        const patient = patients.find((item) => item.id === consultation.patientId);
-        return <li key={consultation.id}><button className="row" onClick={() => drafts[consultation.id] ? onResume(consultation.id) : onOpenConsultation(consultation)}>
-          <span className="lead"><FileText {...icon} /></span>
-          <span className="rbody"><span className="t1">Approve prescription · {patient?.name}</span><span className="t2 num">RX-{consultation.id.split("-").pop()} · {consultation.medicines.length} medicines · draft</span></span>
-          <ChevronRight size={16} className="chev" />
-        </button></li>;
-      })}
-    </ul> : <p className="empty">No drafts waiting.</p>}
+      })}</ul>
+    </>}
+
+    <div className="sec-h"><h2>Awaiting approval</h2>{awaiting.length > 0 && <span className="meta num">{awaiting.length}</span>}</div>
+    {awaiting.length ? <ul className="list att">{awaiting.map((consultation) => {
+      const patient = patientOf(consultation.patientId);
+      return <li key={consultation.id}><button className="row" onClick={() => onOpenConsultation(consultation)}>
+        <span className="lead"><FileText {...icon} /></span>
+        <span className="rbody"><span className="t1">Prescription · {patient?.name}</span><span className="t2 num">RX-{consultation.id.split("-").pop()} · {plural(consultation.medicines.length, "medicine")} · drafted by AI</span></span>
+        <ChevronRight size={16} className="chev" />
+      </button></li>;
+    })}</ul> : <p className="empty">Nothing waiting. Approved prescriptions go straight to the record.</p>}
+
+    <div className="sec-h"><h2>Seen today</h2>{seenToday.length > 0 && <span className="meta num">{seenToday.length}</span>}</div>
+    {seenToday.length ? <ul className="list">{seenToday.map((consultation) => {
+      const patient = patientOf(consultation.patientId);
+      return <li key={consultation.id}><button className="row" onClick={() => onOpenConsultation(consultation)}>
+        <span className="lead"><SpeciesIcon species={patient?.species ?? "Dog"} /></span>
+        <span className="rbody"><span className="t1">{patient?.name} · {consultation.reason}</span><span className="t2">{consultation.notes.diagnosis || consultation.complaint}</span></span>
+        <span className="trail num">{consultation.time}</span>
+      </button></li>;
+    })}</ul> : <p className="empty">No consultations yet today.</p>}
+
+    <div className="sec-h"><h2>Recent patients</h2></div>
+    <div className="pet-rail" role="list">{recent.map((patient) => <button key={patient.id} role="listitem" className="pet-card" onClick={() => onOpenPatient(patient.id)}>
+      <span className="pet-face"><SpeciesIcon species={patient.species} size={24} /></span>
+      <span className="pet-name">{patient.name}</span>
+      <span className="pet-meta">{patient.breed}</span>
+      {hasAllergy(patient) && <span className="pet-flag">Allergy</span>}
+    </button>)}</div>
   </div>;
 }

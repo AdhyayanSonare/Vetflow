@@ -1,4 +1,4 @@
-export type ViewKey = "dashboard" | "patients" | "consultations" | "prescriptions" | "appointments" | "inventory" | "reports" | "settings";
+export type ViewKey = "dashboard" | "patients" | "consultations" | "prescriptions" | "inventory" | "reports" | "settings";
 
 export type Patient = {
   id: string;
@@ -59,26 +59,13 @@ export type Consultation = {
   approved: boolean;
 };
 
-export type Appointment = { id: string; time: string; pet: string; owner: string; reason: string; doctor: string; status: string };
-
-export type DemoState = { patients: Patient[]; consultations: Consultation[]; appointments: Appointment[] };
+export type DemoState = { patients: Patient[]; consultations: Consultation[] };
 
 export const speciesOptions = ["Dog", "Cat", "Cow", "Buffalo", "Goat", "Horse", "Other"];
 
-// Demo data mirrors design/mockups so the app and the mockups tell one story.
+// Seed records for the demo clinic. Live consultations are recorded, transcribed
+// (Groq Whisper) and structured by the extraction model; nothing here is pre-filled into them.
 const today = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date());
-
-export const demoTranscription =
-  "Bruno, four-year-old Labrador, twenty-four kilos. Owner says he has been vomiting since yesterday and is off his food. Temperature is one hundred and two Fahrenheit, mildly dehydrated, abdomen a little tender. This looks like acute gastroenteritis. We will start metronidazole two fifty, one tab twice a day for five days, ondansetron four milligrams, one tab twice a day for three days, and probiotic paste five grams once a day for a week. Bland diet, boiled rice and chicken, for three days, small frequent meals. Recheck in five days.";
-
-export const demoNotes = {
-  complaint: "Vomiting since yesterday; off food",
-  duration: "About one day",
-  examination: "Temperature 102°F. Mild dehydration. Mild abdominal tenderness.",
-  diagnosis: "Acute gastroenteritis",
-  treatment: "Bland diet, boiled rice and chicken, for 3 days. Small frequent meals.",
-  followUp: "Recheck in 5 days",
-};
 
 const patient = (fields: Omit<Patient, "status" | "initials" | "tone" | "followUp" | "medications" | "conditions" | "allergies"> & Partial<Patient>): Patient => ({
   status: "Active", initials: fields.name[0], tone: "mint", allergies: "None known", conditions: "None recorded", medications: "None", followUp: "—", ...fields,
@@ -93,20 +80,6 @@ export const seedPatients: Patient[] = [
   patient({ id: "VET-2026-00115", name: "Rocky", species: "Dog", breed: "Pug", age: "7 y", gender: "Male", weight: "9 kg", owner: "Rahul Sharma", phone: "+91 98200 12345", lastVisit: "12 Oct 2026", conditions: "Brachycephalic airway" }),
   patient({ id: "VET-2026-00113", name: "Luna", species: "Cat", breed: "Siamese", age: "1 y", gender: "Female", weight: "3.4 kg", owner: "Sara Khan", phone: "+91 98200 67890", lastVisit: "8 Oct 2026" }),
   patient({ id: "VET-2026-00111", name: "Sheru", species: "Dog", breed: "Indie", age: "9 y", gender: "Male", weight: "22 kg", owner: "Vikram Rao", phone: "+91 98200 78901", lastVisit: "2 Oct 2026", conditions: "Early arthritis" }),
-];
-
-export const sampleMedicines: Medicine[] = [
-  { id: "med-1", name: "Metronidazole", strength: "250 mg", dosage: "1 tab", route: "Oral", frequency: "BID", duration: "5 days", instructions: "Give after food" },
-  { id: "med-2", name: "Ondansetron", strength: "4 mg", dosage: "1 tab", route: "Oral", frequency: "BID", duration: "3 days", instructions: "" },
-  { id: "med-3", name: "Probiotic paste", strength: "", dosage: "5 g", route: "Oral", frequency: "SID", duration: "7 days", instructions: "" },
-];
-
-export const seedAppointments: Appointment[] = [
-  { id: "APT-01", time: "09:40", pet: "Bella", owner: "Ananya Iyer", reason: "Skin rash", doctor: "Dr. Sharma", status: "Completed" },
-  { id: "APT-02", time: "10:30", pet: "Bruno", owner: "Rahul Sharma", reason: "Vomiting since yesterday, off food", doctor: "Dr. Sharma", status: "Arrived" },
-  { id: "APT-03", time: "11:15", pet: "Coco", owner: "Arjun Mehta", reason: "Follow-up, ear", doctor: "Dr. Sharma", status: "Upcoming" },
-  { id: "APT-04", time: "11:45", pet: "Simba", owner: "Kavya Reddy", reason: "Dental check", doctor: "Dr. Sharma", status: "Upcoming" },
-  { id: "APT-05", time: "12:30", pet: "Rocky", owner: "Rahul Sharma", reason: "Vaccination", doctor: "Dr. Sharma", status: "Upcoming" },
 ];
 
 const visit = (fields: Omit<Consultation, "doctor" | "transcription" | "status"> & Partial<Consultation>): Consultation => ({ doctor: "Dr. Sharma", status: "Completed", transcription: `${fields.notes.complaint}. ${fields.notes.examination} ${fields.notes.treatment}`, ...fields });

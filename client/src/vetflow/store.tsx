@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import type { Appointment, Consultation, Medicine, Patient } from "./data";
-import { initials, sampleMedicines, seedAppointments, seedConsultations, seedPatients } from "./data";
+import type { Consultation, Medicine, Patient } from "./data";
+import { initials, seedConsultations, seedPatients } from "./data";
 
-export type Phase = "ready" | "recording" | "paused" | "processing" | "notes" | "prescription" | "done";
+export type Phase = "ready" | "recording" | "paused" | "processing" | "transcribed" | "notes" | "prescription" | "done";
 
 // Everything an in-progress consultation needs to resume after a reload or the
 // OS killing the tab: the record, where the vet was in the flow, and their edits.
@@ -18,15 +18,14 @@ type StoreState = {
   version: 2;
   patients: Patient[];
   consultations: Consultation[];
-  appointments: Appointment[];
   drafts: Record<string, ConsultDraft>;
   lastPatientId: string;
 };
 
-const STORAGE_KEY = "vetflow-demo-v3";
+const STORAGE_KEY = "vetflow-demo-v4";
 
 function seedState(): StoreState {
-  return { version: 2, patients: seedPatients, consultations: seedConsultations, appointments: seedAppointments, drafts: {}, lastPatientId: seedPatients[0].id };
+  return { version: 2, patients: seedPatients, consultations: seedConsultations, drafts: {}, lastPatientId: seedPatients[0].id };
 }
 
 function readState(): StoreState {
@@ -90,7 +89,7 @@ function useStoreValue() {
     const current = stateRef.current;
     const id = nextId(`CONS-${new Date().getFullYear()}-`, [...current.consultations.map((c) => c.id), ...Object.keys(current.drafts)], 100, 4);
     const consultation: Consultation = { id, patientId, date: todayLabel(), time: timeLabel(), reason: "General Consultation", status: "In progress", doctor: "Dr. Sharma", complaint: "To be documented", transcription: "", notes: { complaint: "", duration: "", examination: "", diagnosis: "Pending doctor’s confirmation", treatment: "", followUp: "" }, medicines: [], approved: false };
-    const draft: ConsultDraft = { consultation, phase: "ready", elapsed: 0, notes: consultation.notes, medicines: sampleMedicines.map((medicine) => ({ ...medicine })) };
+    const draft: ConsultDraft = { consultation, phase: "ready", elapsed: 0, notes: consultation.notes, medicines: [] };
     stateRef.current = { ...current, drafts: { ...current.drafts, [id]: draft }, lastPatientId: patientId };
     setState(stateRef.current);
     return id;
@@ -122,17 +121,13 @@ function useStoreValue() {
     }));
   }, []);
 
-  const addAppointment = useCallback((appointment: Omit<Appointment, "id">) => {
-    setState((current) => ({ ...current, appointments: [...current.appointments, { ...appointment, id: nextId("APT-", current.appointments.map((a) => a.id), 0, 2) }] }));
-  }, []);
-
   const setLastPatient = useCallback((id: string) => {
     setState((current) => current.lastPatientId === id ? current : { ...current, lastPatientId: id });
   }, []);
 
   const resetDemo = useCallback(() => setState(seedState()), []);
 
-  return useMemo(() => ({ ...state, addPatient, startConsultation, updateDraft, updateDraftNow, saveConsultation, addAppointment, setLastPatient, resetDemo }), [state, addPatient, startConsultation, updateDraft, updateDraftNow, saveConsultation, addAppointment, setLastPatient, resetDemo]);
+  return useMemo(() => ({ ...state, addPatient, startConsultation, updateDraft, updateDraftNow, saveConsultation, setLastPatient, resetDemo }), [state, addPatient, startConsultation, updateDraft, updateDraftNow, saveConsultation, setLastPatient, resetDemo]);
 }
 
 type Store = ReturnType<typeof useStoreValue>;
