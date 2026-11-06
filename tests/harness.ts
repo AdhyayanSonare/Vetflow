@@ -5,7 +5,8 @@ import { hashPassword } from "../server/auth/service";
 import { adminUrl, appUrl, createTenant, serve, type Fixture } from "./helpers";
 
 export const PW = "Correct-horse-9";
-export const days = (d: number) => new Date(Date.now() + d * 86400000).toISOString().slice(0, 10);
+/** Calendar date in India, d days from today. */
+export const days = (d: number) => new Date(Date.now() + 5.5 * 3600000 + d * 86400000).toISOString().slice(0, 10);
 
 export type Signed = Awaited<ReturnType<typeof serve>> & { userId: string };
 

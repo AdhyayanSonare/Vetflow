@@ -265,7 +265,7 @@ export function registerInventoryRoutes(app: Express, pool: pg.Pool) {
     const storeId = req.query.storeId ? uuid.parse(req.query.storeId) : null;
     return (await c.query(
       `select sb.item_id "itemId", i.code, i.generic_name "itemName", i.unit, sb.batch_id "batchId", b.batch_no "batchNo",
-              to_char(b.expiry_date,'YYYY-MM-DD') "expiryDate", (b.expiry_date < current_date) expired,
+              to_char(b.expiry_date,'YYYY-MM-DD') "expiryDate", (b.expiry_date < today_ist()) expired,
               sb.store_id "storeId", st.name "storeName", sb.quantity::float quantity, b.unit_cost_paise::float "unitCostPaise"
          from stock_balances sb join items i on i.id = sb.item_id join batches b on b.id = sb.batch_id join stores st on st.id = sb.store_id
         where sb.quantity <> 0 and ($1::uuid is null or sb.item_id = $1) and ($2::uuid is null or sb.store_id = $2)
@@ -292,9 +292,9 @@ export function registerInventoryRoutes(app: Express, pool: pg.Pool) {
     const days = Math.min(Math.max(Number(req.query.days ?? 90) || 90, 1), 730);
     return (await c.query(
       `select i.id "itemId", i.generic_name "itemName", b.id "batchId", b.batch_no "batchNo", to_char(b.expiry_date,'YYYY-MM-DD') "expiryDate",
-              (b.expiry_date - current_date) "daysLeft", sum(sb.quantity)::float quantity, (b.expiry_date < current_date) expired
+              (b.expiry_date - today_ist()) "daysLeft", sum(sb.quantity)::float quantity, (b.expiry_date < today_ist()) expired
          from stock_balances sb join batches b on b.id = sb.batch_id join items i on i.id = sb.item_id
-        where sb.quantity > 0 and b.expiry_date <= current_date + $1::int
+        where sb.quantity > 0 and b.expiry_date <= today_ist() + $1::int
         group by i.id, b.id order by b.expiry_date`, [days])).rows;
   }));
 

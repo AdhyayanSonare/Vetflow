@@ -67,7 +67,7 @@ export async function suggestFefo(
   const rows = (await c.query(
     `select b.id, b.batch_no, to_char(b.expiry_date,'YYYY-MM-DD') as expiry, sb.quantity::text as available
        from stock_balances sb join batches b on b.id = sb.batch_id
-      where sb.item_id = $1 and sb.store_id = $2 and sb.quantity > 0 and b.expiry_date >= current_date
+      where sb.item_id = $1 and sb.store_id = $2 and sb.quantity > 0 and b.expiry_date >= today_ist()
       order by b.expiry_date, b.created_at, b.id`, [itemId, storeId])).rows;
   const out: Allocation[] = [];
   // Decimal arithmetic in thousandths avoids float drift.

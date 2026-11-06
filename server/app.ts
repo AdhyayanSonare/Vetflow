@@ -10,7 +10,9 @@ import {
 import { withTenant } from "./db/pool";
 import { apiError } from "./http";
 import { registerClinicalRoutes } from "./routes/clinical";
+import { registerImportRoutes } from "./routes/import";
 import { registerInventoryRoutes } from "./routes/inventory";
+import { registerReportRoutes } from "./routes/reports";
 import { registerStockOpsRoutes } from "./routes/stockops";
 
 export const COOKIE = "vf_session";
@@ -147,6 +149,8 @@ export function createApp(pool: pg.Pool, opts: { production?: boolean } = {}) {
   registerInventoryRoutes(app, pool);
   registerClinicalRoutes(app, pool);
   registerStockOpsRoutes(app, pool);
+  registerReportRoutes(app, pool);
+  registerImportRoutes(app, pool);
 
   // Error handler: never leak internals.
   app.use("/api", (err: Error, _req: Request, res: Response, _next: NextFunction) => {
