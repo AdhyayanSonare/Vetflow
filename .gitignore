@@ -117,3 +117,7 @@ certs/
 # Local demo databases
 .demo-data/
 .demo-data-e2e/
+
+# Saved end-to-end sessions and results
+e2e/.auth/
+e2e/.results/

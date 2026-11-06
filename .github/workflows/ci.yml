@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "release/**"]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The same checks on Linux, macOS and Windows, so "runs on any laptop" is proven and not assumed.
+  verify:
+    name: Verify (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Type check
+        run: pnpm typecheck
+      - name: Lint
+        run: pnpm lint
+      - name: Tests (real PostgreSQL, started by the tests)
+        run: pnpm test
+      - name: Build
+        run: pnpm build
+      - name: Install browser for end-to-end tests
+        run: pnpm exec playwright install --with-deps chromium
+        if: runner.os == 'Linux'
+      - name: Install browser for end-to-end tests
+        run: pnpm exec playwright install chromium
+        if: runner.os != 'Linux'
+      - name: End-to-end tests at phone, tablet and desktop sizes
+        run: pnpm e2e
+        env:
+          CI: "true"
+      - name: Keep screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-screenshots-${{ matrix.os }}
+          path: docs/qa/*.png
+          retention-days: 7
+
+  # Policy checks that do not depend on the operating system.
+  policy:
+    name: Licences, secrets and dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm licences
+      - run: pnpm secrets
+      - run: pnpm audit --audit-level high
+
+  docker:
+    name: Docker images build and the stack starts
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the app image
+        run: docker build -t vetflow-app .
+      - name: Build the speech service image (faster-whisper)
+        run: docker build --build-arg PROVIDER=whisper -t vetflow-asr asr
+      - name: Start the stack and wait for it to be healthy
+        run: |
+          cp .env.production.example .env
+          sed -i 's/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=ci-only-password-1/; s/^APP_DB_PASSWORD=.*/APP_DB_PASSWORD=ci-only-app-password-1/; s/^SITE_ADDRESS=.*/SITE_ADDRESS=:80/' .env
+          docker compose up -d --wait --wait-timeout 240 postgres migrate api proxy
+          curl --fail --retry 10 --retry-delay 3 http://localhost/api/health
+      - name: Logs on failure
+        if: failure()
+        run: docker compose logs --no-color | tail -200

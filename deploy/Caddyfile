@@ -1,0 +1,9 @@
+# SITE_ADDRESS is a domain name (automatic HTTPS) or ":80" for plain HTTP behind another proxy.
+{$SITE_ADDRESS::80} {
+	encode zstd gzip
+	header -Server
+	reverse_proxy api:3000 {
+		health_uri /api/health
+		health_interval 15s
+	}
+}

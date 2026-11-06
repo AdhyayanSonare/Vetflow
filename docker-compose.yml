@@ -1,0 +1,120 @@
+# Vetflow on one Linux VM. Copy .env.production.example to .env, fill it in, then: docker compose up -d
+# Services: postgres, migrate (one-shot), api, worker, proxy (automatic TLS), backup, and optionally asr and uptime.
+name: vetflow
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: vetflow
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d vetflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Applies pending migrations and sets the app role's password, then exits.
+  migrate:
+    build: .
+    command: ["node", "dist/db-migrate.js"]
+    restart: "no"
+    environment:
+      ADMIN_DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/vetflow
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?Set APP_DB_PASSWORD in .env}
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  api:
+    build: .
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      DATABASE_URL: postgres://vetflow_app:${APP_DB_PASSWORD}@postgres:5432/vetflow
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      SITE_PASSWORD: ${SITE_PASSWORD:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      ASR_URL: ${ASR_URL:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    expose: ["3000"]
+
+  worker:
+    build: .
+    command: ["node", "dist/worker.js"]
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      ADMIN_DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/vetflow
+      DATABASE_URL: postgres://vetflow_app:${APP_DB_PASSWORD}@postgres:5432/vetflow
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    healthcheck:
+      disable: true
+
+  # TLS certificates are requested and renewed automatically for SITE_ADDRESS (a domain name).
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api: { condition: service_healthy }
+
+  # Nightly encrypted backup to storage off this machine. See docs/runbooks/backup.md.
+  backup:
+    build: ./deploy/backup
+    restart: unless-stopped
+    environment:
+      PGURL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/vetflow
+      RESTIC_REPOSITORY: ${RESTIC_REPOSITORY:-}
+      RESTIC_PASSWORD: ${RESTIC_PASSWORD:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-30}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  # Optional local speech to text. Start with: docker compose --profile asr up -d
+  asr:
+    profiles: ["asr"]
+    build:
+      context: ./asr
+      args:
+        PROVIDER: ${ASR_PROVIDER:-whisper}
+    restart: unless-stopped
+    environment:
+      ASR_PROVIDER: ${ASR_PROVIDER:-whisper}
+      ASR_ENABLE_WHISPER: "true"
+    volumes:
+      - models:/models
+    expose: ["8000"]
+
+  # Optional uptime monitoring with email alerts. Start with: docker compose --profile monitoring up -d
+  uptime:
+    profiles: ["monitoring"]
+    image: louislam/uptime-kuma:1
+    restart: unless-stopped
+    ports: ["127.0.0.1:3001:3001"]
+    volumes:
+      - uptime:/app/data
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
+  models:
+  uptime:
