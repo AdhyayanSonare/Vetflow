@@ -2,7 +2,7 @@ import type pg from "pg";
 import { withTenant } from "../db/pool";
 import { reconcile } from "../modules/stock/ledger";
 
-export type JobResult = { tenants: number; reconciliationProblems: number; expiryAlerts: number; lowStockAlerts: number };
+export type JobResult = { tenants: number; reconciliationProblems: number; expiryAlerts: number; lowStockAlerts: number; transcriptsPurged: number };
 
 async function addAlert(c: pg.PoolClient, tenantId: string, kind: string, severity: string, message: string, ref: string) {
   const r = await c.query(
@@ -18,7 +18,7 @@ async function addAlert(c: pg.PoolClient, tenantId: string, kind: string, severi
  */
 export async function runTenantChecks(pool: pg.Pool, tenantId: string): Promise<Omit<JobResult, "tenants">> {
   return withTenant(tenantId, async c => {
-    const out = { reconciliationProblems: 0, expiryAlerts: 0, lowStockAlerts: 0 };
+    const out = { reconciliationProblems: 0, expiryAlerts: 0, lowStockAlerts: 0, transcriptsPurged: 0 };
 
     const diff = await reconcile(c, tenantId);
     for (const d of diff) {
@@ -63,18 +63,30 @@ export async function runTenantChecks(pool: pg.Pool, tenantId: string): Promise<
       `update alerts set resolved_at = now() where tenant_id = $1 and kind = 'low_stock' and resolved_at is null
          and ref not in (select 'low:' || i.id from items i left join stock_balances sb on sb.item_id = i.id
                           where i.active and i.min_qty > 0 group by i.id having coalesce(sum(sb.quantity),0) <= i.min_qty)`, [tenantId]);
+
+    // Transcript retention is a tenant setting. 0 keeps transcripts until the consultation is removed.
+    const retentionDays = Number((await c.query("select transcript_retention_days d from tenant_settings where tenant_id = $1", [tenantId])).rows[0]?.d ?? 0);
+    if (retentionDays > 0) {
+      const purged = await c.query("delete from transcripts where created_at < now() - make_interval(days => $1)", [retentionDays]);
+      out.transcriptsPurged = purged.rowCount ?? 0;
+      if (out.transcriptsPurged) {
+        await c.query("insert into audit_log (tenant_id, action, entity, after, reason) values ($1,'transcripts.purge','transcript',$2,$3)",
+          [tenantId, JSON.stringify({ count: out.transcriptsPurged, retentionDays }), "Tenant retention setting"]);
+      }
+    }
     return out;
   }, pool);
 }
 
 export async function runNightly(pool: pg.Pool): Promise<JobResult> {
   const tenants = (await pool.query("select id from list_tenants()")).rows.map(r => r.id as string);
-  const total: JobResult = { tenants: tenants.length, reconciliationProblems: 0, expiryAlerts: 0, lowStockAlerts: 0 };
+  const total: JobResult = { tenants: tenants.length, reconciliationProblems: 0, expiryAlerts: 0, lowStockAlerts: 0, transcriptsPurged: 0 };
   for (const t of tenants) {
     const r = await runTenantChecks(pool, t);
     total.reconciliationProblems += r.reconciliationProblems;
     total.expiryAlerts += r.expiryAlerts;
     total.lowStockAlerts += r.lowStockAlerts;
+    total.transcriptsPurged += r.transcriptsPurged;
   }
   return total;
 }

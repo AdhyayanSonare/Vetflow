@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import pg from "pg";
+import { poolConfig } from "../config/database";
 
 const MIGRATIONS_DIR = path.resolve(import.meta.dirname, "../../db/migrations");
 
@@ -10,6 +11,8 @@ export type MigrateOptions = {
   adminUrl: string;
   /** Password for the vetflow_app login role. */
   appPassword?: string;
+  /** CA certificate file for a hosted database. Certificates are always verified. */
+  caCert?: string;
 };
 
 /**
@@ -17,7 +20,7 @@ export type MigrateOptions = {
  * If a file that was already applied has changed, this throws: applied migrations are immutable.
  */
 export async function migrate(opts: MigrateOptions): Promise<string[]> {
-  const client = new pg.Client({ connectionString: opts.adminUrl });
+  const client = new pg.Client(poolConfig(opts.adminUrl, opts.caCert));
   await client.connect();
   const applied: string[] = [];
   try {
