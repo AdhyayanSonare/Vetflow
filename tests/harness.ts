@@ -1,6 +1,6 @@
 import pg from "pg";
 import { expect } from "vitest";
-import { createApp } from "../server/app";
+import { createApp, type AppOptions } from "../server/app";
 import { hashPassword } from "../server/modules/auth/service";
 import { adminUrl, appUrl, createTenant, serve, type Fixture } from "./helpers";
 
@@ -29,9 +29,9 @@ export function harness() {
       "insert into users (tenant_id,email,name,password_hash,role) values ($1,$2,$3,$4,$5) returning id", [f.tenantId, email, role, hashed, role])).rows[0].id;
     return { id: id as string, email };
   }
-  async function as(f: Fixture, role: string): Promise<Signed> {
+  async function as(f: Fixture, role: string, appOptions: AppOptions = {}): Promise<Signed> {
     const u = await mkUser(f, role);
-    const s = await serve(createApp(pool)); open.push(s);
+    const s = await serve(createApp(pool, appOptions)); open.push(s);
     expect((await s.call("POST", "/api/auth/login", { email: u.email, password: PW })).status).toBe(200);
     return Object.assign(s, { userId: u.id });
   }

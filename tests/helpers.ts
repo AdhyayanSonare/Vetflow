@@ -33,10 +33,11 @@ export async function serve(app: Express) {
   const base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
   const jar = new Map<string, string>();
   let csrf = "";
-  const call = async (method: string, path: string, body?: unknown, opts: { csrf?: boolean; noCookie?: boolean; raw?: Buffer; contentType?: string } = {}) => {
+  const call = async (method: string, path: string, body?: unknown, opts: { csrf?: boolean; noCookie?: boolean; raw?: Buffer; contentType?: string; headers?: Record<string, string> } = {}) => {
     const headers: Record<string, string> = { "content-type": "application/json", connection: "close" };
     if (!opts.noCookie && jar.size) headers.cookie = [...jar].map(([k, v]) => `${k}=${v}`).join("; ");
     if (opts.csrf !== false && csrf && method !== "GET") headers["x-csrf-token"] = csrf;
+    if (opts.headers) Object.assign(headers, opts.headers);
     if (opts.raw) headers["content-type"] = opts.contentType ?? "application/octet-stream";
     const res = await fetch(base + path, { method, headers, body: opts.raw ? new Uint8Array(opts.raw) : body === undefined ? undefined : JSON.stringify(body), redirect: "manual" });
     for (const c of res.headers.getSetCookie()) { const [kv] = c.split(";"); const i = kv.indexOf("="); const v = kv.slice(i + 1); v ? jar.set(kv.slice(0, i), v) : jar.delete(kv.slice(0, i)); }
@@ -46,5 +47,5 @@ export async function serve(app: Express) {
     if (json?.csrfToken) csrf = json.csrfToken;
     return { status: res.status, json, headers: res.headers, text, buf };
   };
-  return { call, close: () => new Promise<void>(r => server.close(() => r())), clearCookies: () => { jar.clear(); csrf = ""; }, setCsrf: (v: string) => { csrf = v; } };
+  return { url: base, call, close: () => new Promise<void>(r => server.close(() => r())), clearCookies: () => { jar.clear(); csrf = ""; }, setCsrf: (v: string) => { csrf = v; } };
 }

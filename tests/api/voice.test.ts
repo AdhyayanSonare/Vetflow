@@ -133,6 +133,13 @@ describe("turning a transcript into a draft", () => {
     expect(r.json.lines[0].itemId).toBe(w.carpro.id);
   });
 
+  it("matches a drug name that the recogniser split into pieces", async () => {
+    const w = await world();
+    const r = await structure(w, "give car pro fn 50 milligrams one tablet twice daily for five days");
+    expect(r.json.lines).toHaveLength(1);
+    expect(r.json.lines[0]).toMatchObject({ itemId: w.carpro.id, unmatched: false, frequency: "twice daily", quantity: 10 });
+  });
+
   it("returns nothing for speech with no drug, and never saves a prescription or moves stock", async () => {
     const w = await world();
     const before = await h.total(w.item.id);
