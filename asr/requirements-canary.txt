@@ -1,0 +1,5 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.5.1
+nemo_toolkit[asr]==2.2.1
+soundfile>=0.12
+silero-vad>=5.1
