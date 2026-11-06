@@ -1,0 +1,15 @@
+# Render Blueprint: New > Blueprint > pick this repo and branch.
+services:
+  - type: web
+    name: vetflow
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GROQ_API_KEY
+        sync: false # paste in the Render dashboard; never commit it
+      - key: SITE_PASSWORD
+        sync: false # the shared password for the whole site

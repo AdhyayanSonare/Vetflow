@@ -3,14 +3,13 @@
 ## 1. Responsive application shell and navigation
 - [x] Deliver a premium modern healthcare SaaS dashboard called VetFlow AI with the tagline “Less Documentation. Better Veterinary Care.”
 - [x] Use deep forest green, soft mint green, off-white/light grey background, white cards with subtle shadows, 12–16px rounded corners, Inter typography, and Lucide icons.
-- [x] Provide primary navigation for Dashboard, Patients, Consultations, Prescriptions, Appointments, Inventory (Coming Soon), Reports, and Settings.
+- [x] Provide primary navigation for Dashboard, Patients, Consultations, Prescriptions, Inventory (Coming Soon), Reports, and Settings.
 - [x] Provide a collapsible desktop sidebar and a mobile-friendly navigation system; top navigation includes global search, notifications, doctor profile, clinic name, and current date.
 - [x] Mark all seeded content as demonstration data and preserve user changes through localStorage so refresh does not erase them.
 
 ## 2. Dashboard overview
 - [x] Show “Good Morning, Dr. Sharma” and “Here’s what’s happening at your clinic today.”
 - [x] Show statistics for Total Registered Patients 1,248, Today’s Consultations 18, Pending Follow-ups 7, and Prescriptions Generated 14.
-- [x] Show today’s appointments for Bruno/Rahul Sharma/Follow-up/Completed at 09:30 AM, Max/Priya Patel/General Checkup/In Progress at 10:00 AM, Bella/Amit Verma/Vaccination/Upcoming at 10:30 AM, and Coco/Neha Singh/Consultation/Upcoming at 11:00 AM.
 - [x] Show recent patients, recent consultations, and quick actions for Register New Patient, New Consultation, View Prescriptions, and Schedule Appointment; New Consultation is the most prominent.
 
 ## 3. Patient directory, registration, and profile
@@ -36,9 +35,8 @@
 - [x] Provide prescription listing with prescription ID, patient, owner, consultation date, doctor, number of medicines, and Draft/Approved/Dispensed/Cancelled status.
 - [x] Show a professional prescription document with clinic details, doctor, pet/owner, date, clinical notes, medicines, instructions, follow-up, signature area, and Download PDF/Print controls.
 
-## 6. Consultations, appointments, inventory, reports, and settings
+## 6. Consultations, inventory, reports, and settings
 - [x] Provide searchable consultation history with consultation ID, pet, owner, date, doctor, chief complaint, and status; open a detail view containing original transcription, notes, prescription, corrections, approval status, documents, and audit trail.
-- [x] Provide appointment management with calendar/day/week views, daily appointments, pet selection, owner contact, reason, doctor, status, and follow-up scheduling affordance.
 - [x] Provide an Inventory coming-soon preview for catalogue, stock availability, batch tracking, expiry, supplier info, purchase records, low-stock alerts, and reports; explicitly communicate that stock is deducted only after dispensing confirmation, not while drafting.
 - [x] Provide polished Reports and Settings placeholder views consistent with the product shell.
 
