@@ -19,6 +19,11 @@ export function registerAdminRoutes(app: Express, pool: pg.Pool) {
     };
   }));
 
+  // Other staff who can act as the second person for a controlled medicine. Names and roles only.
+  app.get("/api/users/witnesses", route(pool, "dispense.write", async ({ c, user }) =>
+    (await c.query(
+      `select id, name, role from users where active and id <> $1 and role in ('admin','inventory_manager','pharmacist','vet') order by name`, [user.userId])).rows));
+
   // Settings ------------------------------------------------------------------------------
   const settingsSelect = `voice_enabled "voiceEnabled", barcode_enabled "barcodeEnabled", allow_negative_override "allowNegativeOverride",
     expiry_alert_days "expiryAlertDays", transcript_retention_days "transcriptRetentionDays", keep_audio "keepAudio", asr_default_language "asrDefaultLanguage"`;

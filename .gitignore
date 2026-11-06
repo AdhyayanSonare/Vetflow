@@ -113,3 +113,7 @@ temp/
 client/public/__manus__/version.json
 
 certs/
+
+# Local demo databases
+.demo-data/
+.demo-data-e2e/

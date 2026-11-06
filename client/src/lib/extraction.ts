@@ -1,4 +1,5 @@
 import { EXTRACT_PATH, type ExtractionFailure, type ExtractionSuccess } from "@shared/extraction";
+import { csrfHeaders } from "@/api/client";
 import { VoiceError } from "./voice";
 
 export async function extractConsultationDetails(
@@ -10,7 +11,7 @@ export async function extractConsultationDetails(
   try {
     response = await doFetch(EXTRACT_PATH, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...csrfHeaders() },
       body: JSON.stringify({ transcript }),
       signal: options.signal,
     });
@@ -25,5 +26,5 @@ export async function extractConsultationDetails(
   if (!payload?.notes || !Array.isArray(payload.medicines)) {
     throw new VoiceError("The server returned an unexpected response. Retry, or fill the notes in manually.", "SERVICE_ERROR");
   }
-  return { notes: payload.notes, medicines: payload.medicines, model: payload.model ?? "" };
+  return { notes: payload.notes, medicines: payload.medicines, lines: Array.isArray(payload.lines) ? payload.lines : [], model: payload.model ?? "" };
 }

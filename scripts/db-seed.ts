@@ -1,4 +1,5 @@
 import "dotenv/config";
+import "./lib/quiet";
 import { getConfig } from "../server/config/env";
 import { DEMO_CLINIC, DEMO_PASSWORD, DEMO_USERS, seedDemo } from "../server/db/seed";
 

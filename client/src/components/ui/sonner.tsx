@@ -1,18 +1,16 @@
 import { Toaster as Sonner, type ToasterProps } from "sonner";
+import { useTheme } from "@/lib/theme";
 
-// The app is light-only for now, so the toaster doesn't follow the OS theme.
-const Toaster = ({ ...props }: ToasterProps) => {
+/** Toasts follow the app theme and sit above the phone tab bar. */
+const Toaster = (props: ToasterProps) => {
+  const { resolved } = useTheme();
   return (
     <Sonner
-      theme="light"
-      className="toaster group"
-      style={
-        {
-          "--normal-bg": "var(--surface)",
-          "--normal-text": "var(--ink)",
-          "--normal-border": "var(--line)",
-        } as React.CSSProperties
-      }
+      theme={resolved}
+      position="top-center"
+      offset={{ top: 12 }}
+      closeButton
+      toastOptions={{ classNames: { toast: "!bg-card !text-foreground !border-border !shadow-lg !text-[15px]" } }}
       {...props}
     />
   );

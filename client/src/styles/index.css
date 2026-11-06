@@ -1,0 +1,161 @@
+/* Fonts are bundled with the app (no CDN), so it works offline and under the strict CSP. */
+@import "@fontsource-variable/source-serif-4/index.css";
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ---- Astraon design tokens. Defined once here; Tailwind reads them through @theme below. ---- */
+:root {
+  --surface: #f7f5f0;
+  --raised: #ffffff;
+  --tint: #e6ecf4;
+  --ink: #101b2c;
+  --muted-ink: #545f70;
+  --brand: #1b3a6b;
+  --brand-ink: #ffffff;
+  --accent: #e3a03a;          /* marks and rules only */
+  --accent-ink: #8a5300;      /* amber used as text */
+  --hairline: #d8dee6;
+
+  --ok: #17663a;
+  --ok-tint: #e3f3ea;
+  --warn: #8a5300;
+  --warn-tint: #fbf0dc;
+  --danger: #b42318;
+  --danger-tint: #fde8e6;
+  --recording: #c2410c;
+
+  --radius: 8px;
+  --tap: 44px;
+  --nav-h: 64px;
+  color-scheme: light;
+}
+
+.dark {
+  --surface: #0b1421;
+  --raised: #122033;
+  --tint: #1a2b44;
+  --ink: #edf1f6;
+  --muted-ink: #a0acbf;
+  --brand: #8db0ea;
+  --brand-ink: #0b1421;
+  --accent: #e3a03a;
+  --accent-ink: #f0be72;
+  --hairline: #26374f;
+
+  --ok: #6ccb93;
+  --ok-tint: #12362a;
+  --warn: #f0be72;
+  --warn-tint: #3a2a0f;
+  --danger: #f2766b;
+  --danger-tint: #3b1a17;
+  --recording: #fb923c;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-background: var(--surface);
+  --color-foreground: var(--ink);
+  --color-card: var(--raised);
+  --color-card-foreground: var(--ink);
+  --color-popover: var(--raised);
+  --color-popover-foreground: var(--ink);
+  --color-primary: var(--brand);
+  --color-primary-foreground: var(--brand-ink);
+  --color-secondary: var(--tint);
+  --color-secondary-foreground: var(--ink);
+  --color-muted: var(--tint);
+  --color-muted-foreground: var(--muted-ink);
+  --color-accent: var(--tint);
+  --color-accent-foreground: var(--ink);
+  --color-destructive: var(--danger);
+  --color-border: var(--hairline);
+  --color-input: var(--hairline);
+  --color-ring: var(--brand);
+
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-tint: var(--tint);
+  --color-ink: var(--ink);
+  --color-hairline: var(--hairline);
+  --color-brand: var(--brand);
+  --color-amber: var(--accent);
+  --color-amber-ink: var(--accent-ink);
+  --color-ok: var(--ok);
+  --color-ok-tint: var(--ok-tint);
+  --color-warn: var(--warn);
+  --color-warn-tint: var(--warn-tint);
+  --color-danger: var(--danger);
+  --color-danger-tint: var(--danger-tint);
+  --color-recording: var(--recording);
+
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-serif: "Source Serif 4 Variable", "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* ---- Base ---- */
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    margin: 0;
+    min-width: 320px;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  h1, h2, h3, .font-heading { font-family: var(--font-serif); font-weight: 600; letter-spacing: -0.01em; line-height: 1.2; }
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.125rem; }
+  h3 { font-size: 1rem; }
+  @media (min-width: 1024px) { h1 { font-size: 1.75rem; } }
+  /* 16px stops iOS Safari zooming into fields on focus. */
+  input, select, textarea { font-size: 16px; }
+  button:not(:disabled), [role="button"]:not([aria-disabled="true"]) { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+  ::selection { background: color-mix(in srgb, var(--brand) 25%, transparent); }
+}
+
+/* Numbers, codes and quantities use the mono face with aligned digits. */
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* Space for the phone tab bar and the iPhone home indicator. */
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+.page-pad-bottom { padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px); }
+@media (min-width: 768px) { .page-pad-bottom { padding-bottom: 32px; } }
+
+/* ---- Recorder wave: one soft line, transform-only, still under reduced motion ---- */
+@keyframes wave-drift { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.wave-line { animation: wave-drift 2.4s linear infinite; }
+@keyframes progress-slide { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+.bar-indeterminate::after { content: ""; position: absolute; inset: 0; width: 40%; background: var(--brand); animation: progress-slide 1.2s ease-in-out infinite; }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.rise { animation: rise 180ms ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+  .wave-line { animation: none; }
+}
+
+/* ---- Print: prescriptions and reports print as plain documents ---- */
+.print-only { display: none; }
+@media print {
+  body { background: #fff; color: #000; font-size: 12pt; }
+  .no-print { display: none !important; }
+  .print-only { display: block; }
+  .print-sheet { box-shadow: none !important; border: 0 !important; padding: 0 !important; margin: 0 !important; background: #fff !important; }
+  a { color: inherit; text-decoration: none; }
+  @page { margin: 16mm; }
+}

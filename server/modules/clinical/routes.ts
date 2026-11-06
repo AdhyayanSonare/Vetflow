@@ -122,8 +122,8 @@ export function registerClinicalRoutes(app: Express, pool: pg.Pool) {
     await c.query(
       `update consultations set complaint = coalesce($2,complaint), history = coalesce($3,history), temperature_f = coalesce($4,temperature_f),
          examination = coalesce($5,examination), diagnosis = coalesce($6,diagnosis), treatment_plan = coalesce($7,treatment_plan),
-         follow_up_date = coalesce($8,follow_up_date), duration_text = coalesce($9,duration_text), follow_up_note = coalesce($10,follow_up_note) where id = $1`,
-      [id, b.complaint ?? null, b.history ?? null, b.temperatureF ?? null, b.examination ?? null, b.diagnosis ?? null, b.treatmentPlan ?? null, b.followUpDate ?? null, b.durationText ?? null, b.followUpNote ?? null]);
+         follow_up_date = coalesce($8,follow_up_date), duration_text = coalesce($9,duration_text), follow_up_note = coalesce($10,follow_up_note), source = coalesce($11,source) where id = $1`,
+      [id, b.complaint ?? null, b.history ?? null, b.temperatureF ?? null, b.examination ?? null, b.diagnosis ?? null, b.treatmentPlan ?? null, b.followUpDate ?? null, b.durationText ?? null, b.followUpNote ?? null, b.source ?? null]);
     await auditTx(c, user, "consultation.update", "consultation", id);
     return getConsult(c, id);
   }));
@@ -149,9 +149,13 @@ export function registerClinicalRoutes(app: Express, pool: pg.Pool) {
   // Prescriptions ------------------------------------------------------------------
   const rxView = async (c: pg.PoolClient, id: string) => {
     const r = (await c.query(
-      `select p.id, p.consultation_id "consultationId", p.animal_id "animalId", a.name "animalName", p.status, p.source,
-              p.approved_at "approvedAt", ab.name "approvedByName", p.created_at "createdAt"
-         from prescriptions p join animals a on a.id = p.animal_id left join users ab on ab.id = p.approved_by where p.id = $1`, [id])).rows[0];
+      `select p.id, p.consultation_id "consultationId", p.animal_id "animalId", a.name "animalName", a.code "animalCode", a.species, a.breed,
+              a.weight_kg::float "weightKg", a.allergies, o.name "ownerName", o.phone "ownerPhone", p.status, p.source,
+              p.approved_at "approvedAt", ab.name "approvedByName", p.created_at "createdAt",
+              cv.name "vetName", c.diagnosis, c.treatment_plan "treatmentPlan", c.follow_up_note "followUpNote", t.name "clinicName"
+         from prescriptions p join animals a on a.id = p.animal_id join owners o on o.id = a.owner_id
+         join consultations c on c.id = p.consultation_id join users cv on cv.id = c.vet_id join tenants t on t.id = p.tenant_id
+         left join users ab on ab.id = p.approved_by where p.id = $1`, [id])).rows[0];
     if (!r) throw notFound("Prescription");
     r.lines = (await c.query(
       `select l.id, l.item_id "itemId", l.drug_text "drugText", l.dose, l.route, l.frequency, l.duration, l.instructions, l.quantity::float quantity, l.unmatched,
@@ -162,10 +166,16 @@ export function registerClinicalRoutes(app: Express, pool: pg.Pool) {
   };
   app.get("/api/prescriptions", route(pool, "clinical.read", async ({ c, req }) =>
     (await c.query(
-      `select p.id, a.name "animalName", p.status, p.source, p.created_at "createdAt", p.approved_at "approvedAt",
-              (select count(*)::int from prescription_lines l where l.prescription_id = p.id) "lineCount"
-         from prescriptions p join animals a on a.id = p.animal_id where ($1::text is null or p.status = $1)
-        order by p.created_at desc limit 200`, [req.query.status ?? null])).rows));
+      `select p.id, a.name "animalName", a.species, o.name "ownerName", cv.name "vetName", p.status, p.source,
+              p.created_at "createdAt", p.approved_at "approvedAt",
+              (select count(*)::int from prescription_lines l where l.prescription_id = p.id) "lineCount",
+              (select count(*)::int from prescription_lines l
+                where l.prescription_id = p.id and l.item_id is not null
+                  and (l.quantity is null or l.quantity > coalesce((select sum(dl.quantity) from dispense_lines dl join dispenses d on d.id = dl.dispense_id
+                         where d.prescription_id = p.id and d.status = 'confirmed' and dl.item_id = l.item_id), 0))) "openLines"
+         from prescriptions p join animals a on a.id = p.animal_id join owners o on o.id = a.owner_id
+         join consultations c on c.id = p.consultation_id join users cv on cv.id = c.vet_id
+        where ($1::text is null or p.status = $1) order by p.created_at desc limit 200`, [req.query.status ?? null])).rows));
   app.get("/api/prescriptions/:id", route(pool, "clinical.read", ({ c, req }) => rxView(c, uuid.parse(req.params.id))));
 
   app.post("/api/prescriptions", route(pool, "clinical.write", async ({ c, user, req }) => {

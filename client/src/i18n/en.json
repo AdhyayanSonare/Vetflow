@@ -1,0 +1,38 @@
+{
+  "app": { "name": "Vetflow", "by": "by Astraon Labs" },
+  "nav": {
+    "today": "Today",
+    "patients": "Patients",
+    "record": "Record",
+    "prescriptions": "Prescriptions",
+    "dispensing": "Dispensing",
+    "inventory": "Inventory",
+    "reports": "Reports",
+    "settings": "Settings",
+    "more": "More"
+  },
+  "inventory": {
+    "items": "Items",
+    "receipts": "Receipts",
+    "orders": "Orders",
+    "suppliers": "Suppliers",
+    "transfers": "Transfers",
+    "counts": "Counts",
+    "vials": "Open vials",
+    "alerts": "Alerts",
+    "import": "Import"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "search": "Search",
+    "retry": "Try again",
+    "loading": "Loading",
+    "signOut": "Sign out",
+    "offline": "You are offline. Changes will not save until you reconnect."
+  }
+}

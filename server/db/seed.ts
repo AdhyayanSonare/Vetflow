@@ -4,6 +4,7 @@ import pg from "pg";
 import { createApp } from "../app";
 import { poolConfig } from "../config/database";
 import { runTenantChecks } from "../jobs/nightly";
+import { DEMO_CLINIC, DEMO_PASSWORD, DEMO_USERS } from "../../shared/demo";
 import { hashPassword } from "../modules/auth/service";
 
 /**
@@ -12,17 +13,7 @@ import { hashPassword } from "../modules/auth/service";
  * It is loaded only by an explicit command (pnpm db:seed or pnpm demo), never by the app itself.
  * Business rules are exercised through the real API, so the seed also proves the flows work.
  */
-export const DEMO_PASSWORD = "Vetflow-demo-2026";
-export const DEMO_CLINIC = "Greenfield Veterinary Group (demo data)";
-
-export const DEMO_USERS = [
-  { email: "admin@greenfield.demo", name: "Anita Verma", role: "admin", title: "Group administrator" },
-  { email: "stores@greenfield.demo", name: "Imran Qureshi", role: "inventory_manager", title: "Inventory manager" },
-  { email: "pharmacy@greenfield.demo", name: "Kavya Nair", role: "pharmacist", title: "Pharmacist" },
-  { email: "dr.sharma@greenfield.demo", name: "Dr. Meera Sharma", role: "vet", title: "Veterinarian" },
-  { email: "dr.rao@greenfield.demo", name: "Dr. Arjun Rao", role: "vet", title: "Veterinarian" },
-  { email: "viewer@greenfield.demo", name: "Sunil Das", role: "viewer", title: "Viewer" },
-] as const;
+export { DEMO_CLINIC, DEMO_PASSWORD, DEMO_USERS };
 
 type Api = ReturnType<typeof apiClient>;
 function apiClient(base: string) {

@@ -1,4 +1,5 @@
 import "dotenv/config";
+import "./lib/quiet";
 import { existsSync, rmSync } from "node:fs";
 import net from "node:net";
 import path from "node:path";
@@ -15,12 +16,13 @@ import { startEmbedded } from "./lib/embedded";
  *   pnpm demo           start (data is kept between runs)
  *   pnpm demo --reset   throw the demo data away and start fresh
  *   pnpm demo --rebuild rebuild the client
+ * Environment: PORT (web, default 3000), DEMO_PG_PORT (database, default 54320), DEMO_DATA_DIR (default .demo-data).
  *
  * It never reads the hosted-database settings in .env, so it cannot touch another database.
  */
 const args = new Set(process.argv.slice(2));
 const root = process.cwd();
-const dataRoot = path.join(root, ".demo-data");
+const dataRoot = path.resolve(root, process.env.DEMO_DATA_DIR || ".demo-data");
 const httpPort = Number(process.env.PORT || 3000);
 const pgPort = Number(process.env.DEMO_PG_PORT || 54320);
 

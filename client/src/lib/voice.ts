@@ -1,3 +1,4 @@
+import { csrfHeaders } from "@/api/client";
 import {
   AUDIO_EXTENSION_MIME,
   MAX_AUDIO_BYTES,
@@ -43,7 +44,7 @@ export async function transcribeAudioBlob(
   try {
     response = await doFetch(VOICE_TRANSCRIBE_PATH, {
       method: "POST",
-      headers: { "Content-Type": contentType },
+      headers: { "Content-Type": contentType, ...csrfHeaders() },
       body: audio,
       signal: options.signal,
     });
