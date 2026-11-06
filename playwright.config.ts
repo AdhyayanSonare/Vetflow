@@ -27,7 +27,7 @@ export default defineConfig({
     { name: "desktop", use: { viewport: { width: 1280, height: 800 } } },
   ],
   webServer: {
-    command: "pnpm demo:reset",
+    command: "pnpm demo:reset --rebuild",
     url: `http://localhost:${PORT}/api/health`,
     reuseExistingServer: !process.env.CI,
     timeout: 300_000,

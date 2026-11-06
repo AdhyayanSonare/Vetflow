@@ -42,6 +42,14 @@ export function registerClinicalRoutes(app: Express, pool: pg.Pool) {
         order by a.created_at desc limit 100`, [q])).rows;
   }));
 
+  // Find an existing owner, so another animal can be registered under them.
+  app.get("/api/owners", route(pool, "clinical.read", async ({ c, req }) => {
+    const q = String(req.query.q ?? "").trim();
+    return (await c.query(
+      `select o.id, o.name, o.phone, o.email, (select count(*)::int from animals a where a.owner_id = o.id and a.active) "animalCount"
+         from owners o where $1 = '' or o.name ilike '%'||$1||'%' or o.phone ilike '%'||$1||'%' order by o.name limit 20`, [q])).rows;
+  }));
+
   app.post("/api/animals", route(pool, "clinical.write", async ({ c, user, req }) => {
     const b = AnimalBody.parse(req.body);
     await ensureOwned(c, "owners", [b.ownerId]);
@@ -97,6 +105,8 @@ export function registerClinicalRoutes(app: Express, pool: pg.Pool) {
     if (!r) throw notFound("Consultation");
     r.transcripts = (await c.query(
       `select id, language, provider, text, created_at "createdAt" from transcripts where consultation_id = $1 order by created_at`, [id])).rows;
+    r.prescriptions = (await c.query(
+      `select id, status, source from prescriptions where consultation_id = $1 and status <> 'cancelled' order by created_at desc`, [id])).rows;
     return r;
   };
   app.get("/api/consultations/:id", route(pool, "clinical.read", ({ c, req }) => getConsult(c, uuid.parse(req.params.id))));

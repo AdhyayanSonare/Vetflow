@@ -19,6 +19,10 @@ type Page = { path: string; load: () => Promise<{ default: ComponentType }>; per
  */
 const PAGES: Page[] = [
   { path: "/", load: () => import("@/features/dashboard/TodayPage") },
+  { path: "/patients", load: () => import("@/features/patients/PatientsPage"), permission: "clinical.read" },
+  { path: "/patients/:id", load: () => import("@/features/patients/PatientProfilePage"), permission: "clinical.read" },
+  { path: "/consult/new", load: () => import("@/features/consultation/NewConsultationPage"), permission: "clinical.write" },
+  { path: "/consult/:id", load: () => import("@/features/consultation/ConsultationPage"), permission: "clinical.write" },
 ];
 
 const lazyPages = PAGES.map(p => ({ ...p, Component: lazy(p.load) }));

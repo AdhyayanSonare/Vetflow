@@ -28,13 +28,13 @@ The single source of truth for what is done and what is left. Updated at every s
 - [ ] Tests: 143 passing. To add: legacy import, subscription invoices
 
 ## Frontend (rebuild, API-backed)
-- [ ] Structure: `client/src/{app,api,features,components,hooks,lib,styles}`, TanStack Query, no business logic in components
-- [ ] Astraon tokens (CSS variables + Tailwind theme), self-hosted Source Serif 4, IBM Plex Sans and Mono, dark theme
-- [ ] Shell: sidebar (desktop), icon rail (tablet), bottom tab bar with Record (phone)
-- [ ] Sign-in, password reset
-- [ ] Today (dashboard), alerts
-- [ ] Patients: list, register, profile
-- [ ] Consultation flow: record or upload, transcribe, extract, review notes, prescription, approve, done (print, WhatsApp share)
+- [x] Structure: `client/src/{app,api,features,components,hooks,lib,styles}`, TanStack Query, business logic in hooks and pure modules
+- [x] Astraon tokens (CSS variables + Tailwind theme), self-hosted Source Serif 4, IBM Plex Sans and Mono, dark theme
+- [x] Shell: sidebar (desktop), icon rail (tablet), bottom tab bar with Record (phone)
+- [x] Sign-in, password reset
+- [~] Today (dashboard) done; alerts page with inventory
+- [x] Patients: list, register, profile
+- [x] Consultation flow: record or upload or type, transcribe, extract, review notes, prescription, approve, done (e2e at 3 sizes)
 - [ ] Prescriptions list and print view
 - [ ] Dispensing queue and counter sale (controlled-item witness)
 - [ ] Inventory: items, item detail with batches and ledger, receipts, orders, suppliers, transfers, counts, vials, adjustments, import
@@ -42,7 +42,7 @@ The single source of truth for what is done and what is left. Updated at every s
 - [ ] Settings: users, branches, feature flags, subscription, licences, audit
 - [ ] Barcode input (keyboard scanners always; camera scanner behind the flag)
 - [ ] Responsive at 375, 768 and 1280 px, 44 px targets, no horizontal scroll
-- [ ] Playwright smoke tests at three sizes, screenshots in `docs/qa/`
+- [~] Playwright tests at three sizes, screenshots in `docs/qa/` (smoke + consultation done; more specs per feature)
 
 ## Operations and quality
 - [ ] ESLint, licence allow-list check, secret scan, `pnpm audit` in `pnpm check`
