@@ -9,6 +9,8 @@ import type { AsrClient } from "./modules/voice/asr";
 import type { Extractor } from "./modules/voice/extract";
 
 export type AppOptions = {
+  /** Marks the session cookie Secure and sends HSTS. Defaults to production. Switch off for plain-HTTP local use. */
+  secureCookies?: boolean;
   production?: boolean;
   /** Relax the content security policy for the Vite dev server only. */
   relaxCsp?: boolean;
@@ -33,7 +35,8 @@ export function createApp(pool: pg.Pool, opts: AppOptions = {}) {
   app.locals.capabilities = { transcription: !!opts.asr, extraction: !!opts.extractor };
 
   app.use(requestLogger(log));
-  app.use(securityHeaders(opts));
+  const secure = opts.secureCookies ?? !!opts.production;
+  app.use(securityHeaders({ production: secure, relaxCsp: opts.relaxCsp }));
   app.use(sitePassword(() => opts.sitePassword));
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());
@@ -45,11 +48,11 @@ export function createApp(pool: pg.Pool, opts: AppOptions = {}) {
 
   app.use("/api", attachSession(pool));
   registerAuthRoutes(app, pool, {
-    production: opts.production,
+    production: secure,
     onResetToken: (email, token) => {
       // No mail server is wired up. Tests hook this; in development the token is logged so the flow can be tried.
       (app.locals.onResetToken as ((e: string, t: string) => void) | undefined)?.(email, token);
-      if (!opts.production) log.info({ email, token }, "password reset token (development only)");
+      if (!secure) log.info({ email, token }, "password reset token (development only)");
     },
   });
   registerModules(app, pool, { voice: { asr: opts.asr ?? null, extractor: opts.extractor ?? null } });

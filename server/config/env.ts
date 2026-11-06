@@ -29,6 +29,9 @@ const EnvSchema = z.object({
   GROQ_TRANSCRIBE_MODEL: z.string().default("whisper-large-v3"),
   GROQ_EXTRACTION_MODEL: z.string().default("openai/gpt-oss-120b"),
   ASR_URL: optionalString,
+
+  // Defaults to true in production. Set false only for plain-HTTP local use such as the demo.
+  COOKIE_SECURE: z.enum(["true", "false"]).optional(),
 });
 
 export type AsrKind = "groq" | "local" | "none";
@@ -40,6 +43,8 @@ export type Config = {
   logLevel: string;
   databaseUrl: string | undefined;
   adminDatabaseUrl: string | undefined;
+  appDbPassword: string | undefined;
+  cookieSecure: boolean;
   databaseCaCert: string | undefined;
   sitePassword: string | undefined;
   groq: { apiKey: string | undefined; apiUrl: string; transcribeModel: string; extractionModel: string };
@@ -78,6 +83,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     logLevel: e.LOG_LEVEL,
     databaseUrl,
     adminDatabaseUrl: e.ADMIN_DATABASE_URL,
+    appDbPassword: e.APP_DB_PASSWORD,
+    cookieSecure: e.COOKIE_SECURE ? e.COOKIE_SECURE === "true" : e.NODE_ENV === "production",
     databaseCaCert: e.DATABASE_CA_CERT,
     sitePassword: e.SITE_PASSWORD,
     groq: { apiKey: e.GROQ_API_KEY, apiUrl: e.GROQ_API_URL.replace(/\/$/, ""), transcribeModel: e.GROQ_TRANSCRIBE_MODEL, extractionModel: e.GROQ_EXTRACTION_MODEL },
