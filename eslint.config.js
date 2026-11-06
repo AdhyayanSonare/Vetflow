@@ -33,6 +33,12 @@ export default tseslint.config(
     languageOptions: { globals: globals.node },
   },
   {
+    // Claude Code hooks and root config files run under Node and talk to the terminal on purpose.
+    files: [".claude/hooks/**/*.mjs", "*.js", "*.mjs"],
+    languageOptions: { globals: globals.node },
+    rules: { "no-console": "off" },
+  },
+  {
     // Command-line scripts and the demo launcher talk to the terminal on purpose.
     files: ["scripts/**/*.ts", "tests/**/*.ts", "e2e/**/*.ts"],
     rules: { "no-console": "off" },

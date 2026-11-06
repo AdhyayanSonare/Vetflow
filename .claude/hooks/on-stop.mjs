@@ -15,7 +15,7 @@ if (!existsSync(path.join(root, "node_modules", "typescript"))) process.exit(0);
 
 /** A fingerprint of the working tree: which files are modified or new, and their size and time. */
 function fingerprint() {
-  let status = "";
+  let status;
   try {
     status = execFileSync("git", ["status", "--porcelain=v1", "-uall"], { cwd: root, encoding: "utf8" });
   } catch {
@@ -40,10 +40,11 @@ const now = fingerprint();
 if (now && existsSync(stampFile) && readFileSync(stampFile, "utf8") === now) process.exit(0);
 
 const node = process.execPath;
+const ANSI_COLOURS = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "g");
 const run = (label, args) => {
   const r = spawnSync(node, args, { cwd: root, encoding: "utf8", timeout: 240_000 });
   if (r.status === 0) return null;
-  const out = (r.stdout + r.stderr).replace(/\x1b\[[0-9;]*m/g, "").trim().split("\n").slice(-40).join("\n");
+  const out = (r.stdout + r.stderr).replace(ANSI_COLOURS, "").trim().split("\n").slice(-40).join("\n");
   return `${label} failed:\n${out}`;
 };
 
