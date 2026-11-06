@@ -70,3 +70,36 @@ export async function createClinic(admin: pg.Pool, input: NewClinic): Promise<Cr
     c.release();
   }
 }
+
+export type PasswordReset = { email: string; password: string; generatedPassword: boolean; active: boolean };
+
+/**
+ * For a locked-out admin: sets a new password for one user from the server, clears any lock, ends their
+ * sessions and records it in the audit log. Runs as the owner role, so only someone with the database
+ * credentials can do it.
+ */
+export async function resetUserPassword(admin: pg.Pool, emailInput: string, password?: string): Promise<PasswordReset> {
+  const email = emailInput.trim().toLowerCase();
+  const generated = !password;
+  const next = password ?? generatePassword();
+  const problem = passwordProblem(next);
+  if (problem) throw new Error(`The password is too weak. ${problem}`);
+  const hash = await hashPassword(next);
+  const c = await admin.connect();
+  try {
+    await c.query("begin");
+    const user = (await c.query("select id, tenant_id, active from users where lower(email) = $1", [email])).rows[0];
+    if (!user) throw new Error(`No user has the email ${email}.`);
+    await c.query("update users set password_hash = $2, failed_logins = 0, locked_until = null where id = $1", [user.id, hash]);
+    await c.query("delete from sessions where user_id = $1", [user.id]);
+    await c.query("insert into audit_log (tenant_id, action, entity, entity_id, reason) values ($1::uuid,'user.password_reset_server','user',$2::uuid::text,'Set from the server command line')",
+      [user.tenant_id, user.id]);
+    await c.query("commit");
+    return { email, password: next, generatedPassword: generated, active: user.active };
+  } catch (e) {
+    await c.query("rollback").catch(() => {});
+    throw e;
+  } finally {
+    c.release();
+  }
+}

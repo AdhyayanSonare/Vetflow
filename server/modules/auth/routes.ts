@@ -9,9 +9,16 @@ import {
 
 export type AuthRouteOptions = {
   production?: boolean;
-  /** Called with the reset token. Mail delivery plugs in here; the default logs it outside production. */
-  onResetToken?: (email: string, token: string) => void;
+  /**
+   * Returns the function that delivers a reset token (by mail, once a mail server is wired in), or
+   * nothing when this system cannot deliver one. With no delivery, no token is created and people are
+   * told to ask their clinic admin, who can set a new password under Settings > Users.
+   */
+  resetDelivery?: () => ((email: string, token: string) => void) | undefined;
 };
+
+export const RESET_BY_ADMIN_MESSAGE =
+  "Password reset by email is not set up on this system. Ask your clinic admin to set a new password for you under Settings, Users.";
 
 export function registerAuthRoutes(app: Express, pool: pg.Pool, opts: AuthRouteOptions = {}) {
   const loginLimit = rateLimit({
@@ -55,12 +62,15 @@ export function registerAuthRoutes(app: Express, pool: pg.Pool, opts: AuthRouteO
   // Always answers the same way, so it cannot be used to find out which emails have accounts.
   app.post("/api/auth/reset/request", resetLimit, async (req, res, next) => {
     try {
+      const deliver = opts.resetDelivery?.();
+      // Same answer for every email, so this cannot be used to find out who has an account.
+      if (!deliver) return void res.json({ ok: true, delivery: "admin", message: RESET_BY_ADMIN_MESSAGE });
       const email = req.body?.email;
       if (typeof email === "string" && email) {
         const token = await requestPasswordReset(pool, email.trim());
-        if (token) opts.onResetToken?.(email, token);
+        if (token) deliver(email, token);
       }
-      res.json({ ok: true, message: "If that email has an account, a reset link has been sent." });
+      res.json({ ok: true, delivery: "email", message: "If that email has an account, a reset link has been sent." });
     } catch (e) { next(e); }
   });
 

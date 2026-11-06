@@ -7,7 +7,7 @@ export type StaffUser = { id: string; email: string; name: string; role: Role; a
 export type Branch = { id: string; name: string; active: boolean };
 export type Settings = {
   voiceEnabled: boolean; barcodeEnabled: boolean; allowNegativeOverride: boolean; expiryAlertDays: number[];
-  transcriptRetentionDays: number; keepAudio: boolean; asrDefaultLanguage: string;
+  transcriptRetentionDays: number; asrDefaultLanguage: string;
 };
 export type Subscription = { plan: string; billingPeriod: "monthly" | "quarterly"; nextInvoiceDate: string | null; invoices: Array<{ id: string; number: string; periodStart: string; periodEnd: string; amountPaise: number }> };
 export type Licences = { models: Array<{ name: string; by: string; licence: string; use: string; url: string }>; software: string[] };

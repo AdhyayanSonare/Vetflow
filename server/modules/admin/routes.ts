@@ -26,24 +26,24 @@ export function registerAdminRoutes(app: Express, pool: pg.Pool) {
 
   // Settings ------------------------------------------------------------------------------
   const settingsSelect = `voice_enabled "voiceEnabled", barcode_enabled "barcodeEnabled", allow_negative_override "allowNegativeOverride",
-    expiry_alert_days "expiryAlertDays", transcript_retention_days "transcriptRetentionDays", keep_audio "keepAudio", asr_default_language "asrDefaultLanguage"`;
+    expiry_alert_days "expiryAlertDays", transcript_retention_days "transcriptRetentionDays", asr_default_language "asrDefaultLanguage"`;
   app.get("/api/settings", route(pool, "settings.manage", async ({ c }) =>
     (await c.query(`select ${settingsSelect} from tenant_settings`)).rows[0]));
   app.patch("/api/settings", route(pool, "settings.manage", async ({ c, user, req }) => {
     const b = z.object({
       voiceEnabled: z.boolean(), barcodeEnabled: z.boolean(), allowNegativeOverride: z.boolean(),
       expiryAlertDays: z.array(z.number().int().min(1).max(730)).min(1).max(6),
-      transcriptRetentionDays: z.number().int().min(0).max(3650), keepAudio: z.boolean(),
+      transcriptRetentionDays: z.number().int().min(0).max(3650),
       asrDefaultLanguage: z.enum(["en", "de", "fr", "es", "hi"]),
     }).partial().parse(req.body);
     const before = (await c.query(`select ${settingsSelect} from tenant_settings`)).rows[0];
     await c.query(
       `update tenant_settings set voice_enabled = coalesce($1,voice_enabled), barcode_enabled = coalesce($2,barcode_enabled),
          allow_negative_override = coalesce($3,allow_negative_override), expiry_alert_days = coalesce($4,expiry_alert_days),
-         transcript_retention_days = coalesce($5,transcript_retention_days), keep_audio = coalesce($6,keep_audio),
-         asr_default_language = coalesce($7,asr_default_language)`,
+         transcript_retention_days = coalesce($5,transcript_retention_days),
+         asr_default_language = coalesce($6,asr_default_language)`,
       [b.voiceEnabled ?? null, b.barcodeEnabled ?? null, b.allowNegativeOverride ?? null, b.expiryAlertDays ?? null,
-        b.transcriptRetentionDays ?? null, b.keepAudio ?? null, b.asrDefaultLanguage ?? null]);
+        b.transcriptRetentionDays ?? null, b.asrDefaultLanguage ?? null]);
     const after = (await c.query(`select ${settingsSelect} from tenant_settings`)).rows[0];
     await c.query("insert into audit_log (tenant_id,user_id,action,entity,before,after) values ($1,$2,'settings.update','tenant_settings',$3,$4)",
       [user.tenantId, user.userId, JSON.stringify(before), JSON.stringify(after)]);

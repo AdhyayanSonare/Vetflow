@@ -1,5 +1,7 @@
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { findProblems } from "../../scripts/check-licences";
+import { longPathAdvice } from "../../scripts/lib/embedded";
 import { scanText } from "../../scripts/scan-secrets";
 
 describe("licence allow list", () => {
@@ -43,5 +45,19 @@ describe("secret scanner", () => {
   });
   it("honours an explicit allow marker on a fixture line", () => {
     expect(scan("gsk_" + "a".repeat(40) + " // secret-scan:allow")).toEqual([]);
+  });
+});
+
+describe("Windows long-path advice", () => {
+  const deep = path.win32.join("C:", "Users", "Someone With A Long Name", "OneDrive - Some Company Pvt Ltd", "Documents", "Projects", "Clients", "Veterinary", "Vetflow");
+  it("explains the problem for a deep Windows folder and names a fix", () => {
+    const advice = longPathAdvice(deep, "win32");
+    expect(advice).toContain(`${deep.length} characters`);
+    expect(advice).toContain("shorter folder such as C:\\Vetflow,");
+  });
+  it("stays quiet for a short Windows folder and on other systems", () => {
+    expect(longPathAdvice(path.win32.join("D:", "Vetflow"), "win32")).toBeNull();
+    expect(longPathAdvice(deep, "linux")).toBeNull();
+    expect(longPathAdvice(deep, "darwin")).toBeNull();
   });
 });

@@ -1,7 +1,7 @@
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../../server/app";
-import { createClinic, generatePassword } from "../../server/db/bootstrap";
+import { createClinic, generatePassword, resetUserPassword } from "../../server/db/bootstrap";
 import { passwordProblem } from "../../server/modules/auth/service";
 import { adminUrl, appUrl, serve } from "../helpers";
 
@@ -63,5 +63,36 @@ describe("creating a real clinic", () => {
     const set = new Set(Array.from({ length: 50 }, generatePassword));
     expect(set.size).toBe(50);
     for (const pw of set) { expect(pw).toHaveLength(16); expect(passwordProblem(pw)).toBeNull(); }
+  });
+});
+
+describe("server-side password reset for a locked-out admin", () => {
+  it("sets a new password, clears the lock, ends old sessions and writes an audit row", async () => {
+    const tag = unique();
+    const r = await createClinic(admin, { clinicName: `Lock ${tag}`, adminEmail: `lock.${tag}@example.test`, adminName: "Locked", password: "Old-password-11" });
+    const s = await serve(createApp(app));
+    try {
+      expect((await s.call("POST", "/api/auth/login", { email: r.adminEmail, password: "Old-password-11" })).status).toBe(200);
+      await admin.query("update users set failed_logins = 5, locked_until = now() + interval '1 hour' where id = $1", [r.adminUserId]);
+      s.clearCookies();
+      expect((await s.call("POST", "/api/auth/login", { email: r.adminEmail, password: "Old-password-11" })).status).toBe(423);
+
+      const reset = await resetUserPassword(admin, r.adminEmail.toUpperCase());
+      expect(reset.generatedPassword).toBe(true);
+      expect((await admin.query("select count(*)::int n from sessions where user_id = $1", [r.adminUserId])).rows[0].n).toBe(0);
+      expect((await admin.query("select count(*)::int n from audit_log where tenant_id = $1 and action = 'user.password_reset_server'", [r.tenantId])).rows[0].n).toBe(1);
+
+      expect((await s.call("POST", "/api/auth/login", { email: r.adminEmail, password: "Old-password-11" })).status).toBe(401);
+      expect((await s.call("POST", "/api/auth/login", { email: r.adminEmail, password: reset.password })).status).toBe(200);
+    } finally { await s.close(); }
+  });
+
+  it("refuses an unknown email and a weak password without changing anything", async () => {
+    await expect(resetUserPassword(admin, `nobody.${unique()}@example.test`)).rejects.toThrow(/No user/);
+    const tag = unique();
+    const r = await createClinic(admin, { clinicName: `W ${tag}`, adminEmail: `w.${tag}@example.test`, adminName: "W", password: "Keep-this-pw-9" });
+    await expect(resetUserPassword(admin, r.adminEmail, "short")).rejects.toThrow(/too weak/);
+    const s = await serve(createApp(app));
+    try { expect((await s.call("POST", "/api/auth/login", { email: r.adminEmail, password: "Keep-this-pw-9" })).status).toBe(200); } finally { await s.close(); }
   });
 });

@@ -29,20 +29,20 @@ function Shell({ title, children }: { title: string; children: React.ReactNode }
 }
 
 function RequestForm() {
-  const [sent, setSent] = useState(false);
+  const [answer, setAnswer] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<{ email: string }>({ resolver: zodResolver(requestSchema) });
   const onSubmit = handleSubmit(async v => {
     setError(null);
-    try { await api.post("/api/auth/reset/request", v); setSent(true); } catch (e) { setError(errorMessage(e)); }
+    try { setAnswer((await api.post<{ message: string }>("/api/auth/reset/request", v)).message); } catch (e) { setError(errorMessage(e)); }
   });
-  if (sent) return <p>If that email has an account, a reset link has been sent. Ask your clinic administrator if it does not arrive, as they can set a new password for you.</p>;
+  if (answer) return <p role="status">{answer}</p>;
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-4">
-      <p className="text-muted-foreground">Enter your email and we will send a reset link.</p>
+      <p className="text-muted-foreground">Enter your email. If reset by email is available you will get a link; if not, you will be told who can set a new password for you.</p>
       <TextField label="Email" type="email" inputMode="email" autoComplete="username" autoFocus error={errors.email?.message} {...register("email")} />
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-      <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>{isSubmitting && <Loader2 className="animate-spin" />}Send reset link</Button>
+      <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>{isSubmitting && <Loader2 className="animate-spin" />}Continue</Button>
     </form>
   );
 }

@@ -49,11 +49,8 @@ export function createApp(pool: pg.Pool, opts: AppOptions = {}) {
   app.use("/api", attachSession(pool));
   registerAuthRoutes(app, pool, {
     production: secure,
-    onResetToken: (email, token) => {
-      // No mail server is wired up. Tests hook this; in development the token is logged so the flow can be tried.
-      (app.locals.onResetToken as ((e: string, t: string) => void) | undefined)?.(email, token);
-      if (!secure) log.info({ email, token }, "password reset token (development only)");
-    },
+    // No mail server is wired up yet, so by default nothing delivers a token. Tests set app.locals.onResetToken.
+    resetDelivery: () => app.locals.onResetToken as ((email: string, token: string) => void) | undefined,
   });
   registerModules(app, pool, { voice: { asr: opts.asr ?? null, extractor: opts.extractor ?? null } });
 

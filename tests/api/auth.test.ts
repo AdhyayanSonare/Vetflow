@@ -113,6 +113,19 @@ describe("sign-in and sessions", () => {
 });
 
 describe("password reset", () => {
+  it("says so plainly when no mail delivery exists, creates no token, and answers every email alike", async () => {
+    const u = await user();
+    const s = await serve(createApp(pool)); // no delivery hook, like a system with no mail server
+    const known = await s.call("POST", "/api/auth/reset/request", { email: u.email });
+    const unknown = await s.call("POST", "/api/auth/reset/request", { email: "ghost@clinic.test" });
+    expect(known.status).toBe(200);
+    expect(known.json).toEqual(unknown.json);
+    expect(known.json.delivery).toBe("admin");
+    expect(known.json.message).toMatch(/Ask your clinic admin/);
+    expect((await admin.query("select count(*)::int n from password_resets where user_id = $1", [u.userId])).rows[0].n).toBe(0);
+    await s.close();
+  });
+
   it("resets once, ends old sessions, and never reveals whether an email exists", async () => {
     const u = await user();
     const { app, tokens } = appWith(); const s = await serve(app);
