@@ -27,6 +27,9 @@ export async function createTenant(name: string): Promise<Fixture> {
 import type { Express } from "express";
 import type { Server } from "node:http";
 
+/** A test HTTP client: `call(method, path, body)` keeps cookies and the CSRF token. */
+export type TestClient = Awaited<ReturnType<typeof serve>>;
+
 /** Starts an Express app on an ephemeral port and returns a fetch helper that keeps cookies. */
 export async function serve(app: Express) {
   const server: Server = await new Promise(r => { const s = app.listen(0, "127.0.0.1", () => r(s)); });
@@ -40,9 +43,10 @@ export async function serve(app: Express) {
     if (opts.headers) Object.assign(headers, opts.headers);
     if (opts.raw) headers["content-type"] = opts.contentType ?? "application/octet-stream";
     const res = await fetch(base + path, { method, headers, body: opts.raw ? new Uint8Array(opts.raw) : body === undefined ? undefined : JSON.stringify(body), redirect: "manual" });
-    for (const c of res.headers.getSetCookie()) { const [kv] = c.split(";"); const i = kv.indexOf("="); const v = kv.slice(i + 1); v ? jar.set(kv.slice(0, i), v) : jar.delete(kv.slice(0, i)); }
+    for (const c of res.headers.getSetCookie()) { const [kv] = c.split(";"); const i = kv.indexOf("="); const v = kv.slice(i + 1); if (v) jar.set(kv.slice(0, i), v); else jar.delete(kv.slice(0, i)); }
     const buf = Buffer.from(await res.arrayBuffer());
     const text = buf.toString("utf8");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test helper: the shape depends on the route under test
     let json: any = null; try { json = JSON.parse(text); } catch { /* not json */ }
     if (json?.csrfToken) csrf = json.csrfToken;
     return { status: res.status, json, headers: res.headers, text, buf };

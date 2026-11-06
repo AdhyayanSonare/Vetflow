@@ -5,7 +5,6 @@ import { applyReceiptToOrder } from "./orders";
 import { auditTx, ensureOwned, HttpError, notFound, route } from "../../http/route";
 import { uuid, date, qtyNum, paise } from "../../http/schemas";
 import { confirmReceipt } from "../stock/ledger";
-import { can } from "../auth/permissions";
 
 export function registerPurchasingRoutes(app: Express, pool: pg.Pool) {
   // Receipts (purchase entries) ------------------------------------------------

@@ -4,7 +4,6 @@ import { z } from "zod";
 import { auditTx, ensureOwned, HttpError, notFound, route } from "../../http/route";
 import { uuid } from "../../http/schemas";
 import { postMovement } from "../stock/ledger";
-import { can } from "../auth/permissions";
 
 export function registerCountRoutes(app: Express, pool: pg.Pool) {
   // Stock counts ---------------------------------------------------------------------------

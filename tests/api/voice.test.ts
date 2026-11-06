@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../../server/app";
 import type { AsrClient } from "../../server/modules/voice/asr";
-import { createTenant, serve } from "../helpers";
+import { createTenant, serve, type TestClient } from "../helpers";
 import { harness, PW } from "../harness";
 
 const h = harness();
@@ -91,7 +91,7 @@ describe("turning a transcript into a draft", () => {
     const metro = (await add({ genericName: "Metronidazole", strength: "200 mg", unit: "tablet" })).json;
     return { ...w, carpro, amox250, amox500, metro };
   }
-  const structure = (w: { vet: { call: Function } }, text: string) => w.vet.call("POST", "/api/voice/structure", { text });
+  const structure = (w: { vet: Pick<TestClient, "call"> }, text: string) => w.vet.call("POST", "/api/voice/structure", { text });
 
   it("matches a drug, reads dose, frequency and duration, and works out the quantity", async () => {
     const w = await world();

@@ -68,7 +68,7 @@ export async function migrate(opts: MigrateOptions): Promise<string[]> {
         applied.push(name);
       } catch (err) {
         await client.query("rollback");
-        throw new Error(`Migration ${name} failed: ${(err as Error).message}`);
+        throw new Error(`Migration ${name} failed: ${(err as Error).message}`, { cause: err });
       }
     }
     if (opts.appPassword) {

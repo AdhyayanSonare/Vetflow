@@ -11,6 +11,16 @@ describe("licence allow list", () => {
     const bad = findProblems({ "GPL-3.0": pkg("g"), "AGPL-3.0-or-later": pkg("h"), "LGPL-2.1": pkg("i"), "SEE LICENSE IN X": pkg("j") });
     expect(bad.map(b => b.name).sort()).toEqual(["g", "h", "i", "j"]);
   });
+  it("reads SPDX expressions: OR passes when one side is allowed, AND needs both", () => {
+    expect(findProblems({ "(MIT OR GPL-3.0-or-later)": pkg("dual"), "MIT AND ISC": pkg("both"), "MIT/X11": pkg("slash") })).toEqual([]);
+    expect(findProblems({ "(MIT AND GPL-3.0)": pkg("k"), "GPL-2.0 OR LGPL-3.0": pkg("l") })).toHaveLength(2);
+  });
+  it("allows a build-only exception, but never for a package that ships", () => {
+    const light = { "MPL-2.0": [{ name: "lightningcss", versions: ["1"] }] };
+    expect(findProblems(light, {})).toEqual([]);
+    expect(findProblems(light, light)).toHaveLength(1);
+    expect(findProblems({ "MPL-2.0": pkg("some-other-tool") }, {})).toHaveLength(1);
+  });
   it("allows the Open Font Licence only for the three brand typefaces", () => {
     expect(findProblems({ "OFL-1.1": [{ name: "@fontsource/ibm-plex-sans", versions: ["5"] }] })).toEqual([]);
     expect(findProblems({ "OFL-1.1": [{ name: "some-other-font", versions: ["1"] }] })).toHaveLength(1);

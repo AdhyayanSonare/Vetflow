@@ -2,7 +2,7 @@ import type { Express } from "express";
 import type pg from "pg";
 import { z } from "zod";
 import { auditTx, ensureOwned, HttpError, notFound, route } from "../../http/route";
-import { uuid, qty } from "../../http/schemas";
+import { uuid } from "../../http/schemas";
 import { issueFefo } from "../stock/ledger";
 import { verifyPassword } from "../auth/service";
 import { can } from "../auth/permissions";

@@ -12,7 +12,7 @@ async function checkDatabase(pool: ReturnType<typeof getPool>) {
   try {
     await pool.query("select 1");
   } catch (e) {
-    throw new Error(`Cannot connect to the database: ${(e as Error).message}. Check DATABASE_URL (or ADMIN_DATABASE_URL and APP_DB_PASSWORD) in .env.`);
+    throw new Error(`Cannot connect to the database: ${(e as Error).message}. Check DATABASE_URL (or ADMIN_DATABASE_URL and APP_DB_PASSWORD) in .env.`, { cause: e });
   }
   const r = await pool.query("select to_regclass('public.stock_ledger') as t");
   if (!r.rows[0].t) throw new Error("The database has no Vetflow tables. Run `pnpm db:migrate` first.");

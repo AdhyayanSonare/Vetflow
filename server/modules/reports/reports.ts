@@ -1,4 +1,3 @@
-import type { Express } from "express";
 import ExcelJS from "exceljs";
 import type pg from "pg";
 import { z } from "zod";

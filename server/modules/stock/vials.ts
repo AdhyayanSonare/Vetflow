@@ -3,9 +3,8 @@ import type { Express } from "express";
 import type pg from "pg";
 import { z } from "zod";
 import { auditTx, ensureOwned, HttpError, notFound, route } from "../../http/route";
-import { uuid, date, qty, reasonText } from "../../http/schemas";
+import { uuid, qty, reasonText } from "../../http/schemas";
 import { issueFefo } from "../stock/ledger";
-import { can } from "../auth/permissions";
 
 export function registerVialRoutes(app: Express, pool: pg.Pool) {
   // Multi-dose vials -------------------------------------------------------------------------

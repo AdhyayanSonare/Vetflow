@@ -4,7 +4,6 @@ import { z } from "zod";
 import { auditTx, ensureOwned, HttpError, notFound, route } from "../../http/route";
 import { uuid, qty } from "../../http/schemas";
 import { suggestFefo, transferStock } from "../stock/ledger";
-import { can } from "../auth/permissions";
 import { transitStore } from "./transit";
 
 export function registerTransferRoutes(app: Express, pool: pg.Pool) {

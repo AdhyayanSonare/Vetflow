@@ -29,7 +29,7 @@ describe("configuration", () => {
   });
 
   it("derives the app-role URL from the admin URL and the app password, keeping the project suffix", () => {
-    const pooled = deriveAppDatabaseUrl("postgresql://postgres.abcdef:AdminPw@aws-0-region.pooler.supabase.com:5432/postgres?sslmode=require", "App#Pw 1");
+    const pooled = deriveAppDatabaseUrl("postgresql://postgres.abcdef:AdminPw@aws-0-region.pooler.supabase.com:5432/postgres?sslmode=require", "App#Pw 1"); // secret-scan:allow (invented fixture)
     const u = new URL(pooled);
     expect(u.username).toBe("vetflow_app.abcdef");
     expect(decodeURIComponent(u.password)).toBe("App#Pw 1");
