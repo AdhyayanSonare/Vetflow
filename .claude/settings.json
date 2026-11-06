@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/claude-code-settings.json",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/block-migration-edits.mjs",
+            "timeout": 10,
+            "statusMessage": "Checking migration is not already applied..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/after-edit.mjs",
+            "timeout": 90,
+            "statusMessage": "Linting edited file..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/on-stop.mjs",
+            "timeout": 300,
+            "statusMessage": "Type check and fast tests..."
+          }
+        ]
+      }
+    ]
+  }
+}
