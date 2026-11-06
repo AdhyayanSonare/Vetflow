@@ -13,6 +13,8 @@ export type PrescriptionLine = {
   quantity: number | null;
   unmatched: boolean;
   dispensed: number;
+  controlled: boolean | null;
+  unit: string | null;
 };
 
 export type Prescription = {

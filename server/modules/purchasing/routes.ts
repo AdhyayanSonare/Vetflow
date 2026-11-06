@@ -21,7 +21,7 @@ export function registerPurchasingRoutes(app: Express, pool: pg.Pool) {
     const r = (await c.query(
       `select r.id, r.supplier_id "supplierId", s.name "supplierName", r.store_id "storeId", r.invoice_no "invoiceNo",
               r.invoice_date "invoiceDate", r.status, r.tax_paise::float "taxPaise", r.discount_paise::float "discountPaise",
-              r.created_at "createdAt", r.confirmed_at "confirmedAt"
+              r.created_at "createdAt", r.confirmed_at "confirmedAt", r.attachment_id "attachmentId", r.po_id "poId"
          from purchase_receipts r join suppliers s on s.id = r.supplier_id where r.id = $1`, [id])).rows[0];
     if (!r) throw notFound("Receipt");
     r.lines = (await c.query(

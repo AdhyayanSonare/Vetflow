@@ -1,10 +1,15 @@
 import { createHash } from "node:crypto";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import pg from "pg";
 import { poolConfig } from "../config/database";
 
-const MIGRATIONS_DIR = path.resolve(import.meta.dirname, "../../db/migrations");
+/** From source it is ../../db/migrations. From the bundle in dist/ it is ../db/migrations. */
+const MIGRATIONS_DIR = [
+  path.resolve(import.meta.dirname, "../../db/migrations"),
+  path.resolve(import.meta.dirname, "../db/migrations"),
+  path.resolve(process.cwd(), "db/migrations"),
+].find(d => existsSync(d)) ?? path.resolve(process.cwd(), "db/migrations");
 
 export type MigrationFile = { name: string; sql: string; checksum: string };
 

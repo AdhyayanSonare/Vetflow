@@ -1,4 +1,4 @@
-import { LogOut, Menu, Mic, Moon, Sun } from "lucide-react";
+import { Info, LogOut, Menu, Mic, Moon, Sun } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
@@ -86,6 +86,9 @@ export function BottomTabs() {
                 </Link>
               </li>
             ))}
+            <li>
+              <Link href="/licences" onClick={() => setMoreOpen(false)} className="flex min-h-12 items-center gap-3 rounded-lg px-3 text-base hover:bg-tint"><Info className="size-5 text-muted-foreground" />Licences</Link>
+            </li>
             <li>
               <button type="button" onClick={() => setTheme(resolved === "dark" ? "light" : "dark")} className="flex min-h-12 w-full items-center gap-3 rounded-lg px-3 text-base hover:bg-tint">
                 {resolved === "dark" ? <Sun className="size-5 text-muted-foreground" /> : <Moon className="size-5 text-muted-foreground" />}

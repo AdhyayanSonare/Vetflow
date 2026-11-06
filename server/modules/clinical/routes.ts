@@ -169,6 +169,7 @@ export function registerClinicalRoutes(app: Express, pool: pg.Pool) {
     if (!r) throw notFound("Prescription");
     r.lines = (await c.query(
       `select l.id, l.item_id "itemId", l.drug_text "drugText", l.dose, l.route, l.frequency, l.duration, l.instructions, l.quantity::float quantity, l.unmatched,
+              (select i.controlled from items i where i.id = l.item_id) controlled, (select i.unit from items i where i.id = l.item_id) unit,
               coalesce((select sum(dl.quantity) from dispense_lines dl join dispenses d on d.id = dl.dispense_id
                          where d.prescription_id = p.id and d.status = 'confirmed' and dl.item_id = l.item_id), 0)::float dispensed
          from prescription_lines l join prescriptions p on p.id = l.prescription_id where l.prescription_id = $1 order by l.id`, [id])).rows;

@@ -59,6 +59,7 @@ export function Sidebar() {
           {resolved === "dark" ? <Sun className="size-5" /> : <Moon className="size-5" />}
           <span className="hidden lg:inline">{resolved === "dark" ? "Light theme" : "Dark theme"}</span>
         </button>
+        <Link href="/licences" className="hidden px-3 py-1 text-xs text-muted-foreground hover:text-foreground lg:block">Licences</Link>
         {user && (
           <div className="flex items-center gap-3 rounded-lg px-2 py-2">
             <span aria-hidden="true" className="flex size-9 shrink-0 items-center justify-center rounded-full bg-tint text-sm font-semibold text-primary">{initials(user.name)}</span>

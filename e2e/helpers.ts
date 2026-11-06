@@ -1,12 +1,12 @@
-import { expect, type Page, type TestInfo } from "@playwright/test";
-import { DEMO_PASSWORD, demoUser, type DemoRole } from "../shared/demo";
+import { expect, type BrowserContext, type Page, type TestInfo } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import type { DemoRole } from "../shared/demo";
 
-/** Signs in through the real form as a seeded demo account. */
+/** Starts the page signed in as a demo account, using the session saved by auth.setup.ts. */
 export async function signIn(page: Page, role: DemoRole = "vet") {
+  const { cookies } = JSON.parse(readFileSync(`e2e/.auth/${role}.json`, "utf8")) as { cookies: Parameters<BrowserContext["addCookies"]>[0] };
+  await page.context().addCookies(cookies);
   await page.goto("/");
-  await page.getByLabel("Email").fill(demoUser(role).email);
-  await page.getByLabel("Password").fill(DEMO_PASSWORD);
-  await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByRole("navigation", { name: "Main" }).first()).toBeVisible();
 }
 
@@ -21,7 +21,10 @@ export async function smallTouchTargets(page: Page): Promise<string[]> {
   return page.evaluate(() => {
     const out: string[] = [];
     for (const el of document.querySelectorAll<HTMLElement>("a[href], button, input:not([type=hidden]), select, textarea, [role=button], [role=tab]")) {
-      const r = el.getBoundingClientRect();
+      // A checkbox or radio is tapped through its label row, so that row is what must be large enough.
+      const isCheck = el instanceof HTMLInputElement && (el.type === "checkbox" || el.type === "radio");
+      const box = isCheck ? (el.closest("label") ?? el) : el;
+      const r = box.getBoundingClientRect();
       const style = getComputedStyle(el);
       if (r.width === 0 || r.height === 0 || style.visibility === "hidden" || style.display === "none") continue;
       if (el.closest("[data-touch-ok]") || el.classList.contains("sr-only")) continue;

@@ -22,9 +22,10 @@ export default defineConfig({
     ...(process.env.CI ? {} : { channel: "chrome" }),
   },
   projects: [
-    { name: "phone", use: { viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 } },
-    { name: "tablet", use: { viewport: { width: 768, height: 1024 }, hasTouch: true } },
-    { name: "desktop", use: { viewport: { width: 1280, height: 800 } } },
+    { name: "setup", testMatch: /auth\.setup\.ts/ },
+    { name: "phone", dependencies: ["setup"], testIgnore: /auth\.setup\.ts/, use: { viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 } },
+    { name: "tablet", dependencies: ["setup"], testIgnore: /auth\.setup\.ts/, use: { viewport: { width: 768, height: 1024 }, hasTouch: true } },
+    { name: "desktop", dependencies: ["setup"], testIgnore: /auth\.setup\.ts/, use: { viewport: { width: 1280, height: 800 } } },
   ],
   webServer: {
     command: "pnpm demo:reset --rebuild",
