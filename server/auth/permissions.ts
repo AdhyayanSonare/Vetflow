@@ -17,7 +17,7 @@ const only = (...p: Permission[]) => new Set<Permission>(p);
 export const ROLE_PERMISSIONS: Record<Role, Set<Permission>> = {
   admin: ALL,
   inventory_manager: only("catalogue.write", "catalogue.read", "suppliers.write", "purchase.write", "purchase.confirm",
-    "stock.issue", "stock.adjust", "stock.override", "stock.count", "transfer.write", "dispense.counter",
+    "stock.issue", "stock.adjust", "stock.override", "stock.count", "transfer.write", "dispense.write", "dispense.counter",
     "reports.read", "import.run", "audit.read", "clinical.read"),
   pharmacist: only("catalogue.read", "purchase.write", "stock.issue", "stock.count", "transfer.write",
     "dispense.write", "reports.read", "clinical.read"),
