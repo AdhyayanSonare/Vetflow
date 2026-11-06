@@ -14,6 +14,7 @@ import { registerClinicalRoutes } from "./routes/clinical";
 import { registerImportRoutes } from "./routes/import";
 import { registerInventoryRoutes } from "./routes/inventory";
 import { registerReportRoutes } from "./routes/reports";
+import { httpAsrClient, registerVoiceRoutes, type AsrClient } from "./routes/voice";
 import { registerStockOpsRoutes } from "./routes/stockops";
 
 export const COOKIE = "vf_session";
@@ -41,7 +42,7 @@ export const audit = (pool: pg.Pool, u: SessionUser, action: string, entity: str
     "insert into audit_log (tenant_id,user_id,action,entity,entity_id,after,reason) values ($1,$2,$3,$4,$5,$6,$7)",
     [u.tenantId, u.userId, action, entity, entityId ?? null, after ? JSON.stringify(after) : null, reason ?? null]), pool);
 
-export function createApp(pool: pg.Pool, opts: { production?: boolean } = {}) {
+export function createApp(pool: pg.Pool, opts: { production?: boolean; relaxCsp?: boolean; asr?: AsrClient | null } = {}) {
   const app = express();
   app.disable("x-powered-by");
   app.set("trust proxy", 1);
@@ -55,8 +56,8 @@ export function createApp(pool: pg.Pool, opts: { production?: boolean } = {}) {
       "X-Frame-Options": "DENY",
       "Referrer-Policy": "same-origin",
       "Permissions-Policy": "camera=(self), microphone=(self), geolocation=()",
-      "Content-Security-Policy":
-        "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+      ...(opts.relaxCsp ? {} : { "Content-Security-Policy":
+        "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" }),
       ...(opts.production ? { "Strict-Transport-Security": "max-age=31536000; includeSubDomains" } : {}),
     });
     next();
@@ -153,6 +154,7 @@ export function createApp(pool: pg.Pool, opts: { production?: boolean } = {}) {
   registerReportRoutes(app, pool);
   registerImportRoutes(app, pool);
   registerAdminRoutes(app, pool);
+  registerVoiceRoutes(app, pool, opts.asr !== undefined ? opts.asr : process.env.ASR_URL ? httpAsrClient(process.env.ASR_URL) : null);
 
   // Error handler: never leak internals.
   app.use("/api", (err: Error, _req: Request, res: Response, _next: NextFunction) => {

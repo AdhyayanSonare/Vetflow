@@ -1,12 +1,12 @@
 // Shared by the browser (pre-flight validation) and the server (authoritative validation).
 
-/** Groq's per-request audio upload limit (free tier). */
+/** Upload limit for one recording. A 30-second clip is well under 1 MB. */
 export const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
 export const MAX_AUDIO_MB = 25;
 
 export const VOICE_TRANSCRIBE_PATH = "/api/voice/transcribe";
 
-/** Containers Groq Whisper accepts, keyed by the file extension we send upstream. */
+/** Containers the browser can record or the user can upload, keyed by file extension. */
 export const AUDIO_EXTENSION_MIME: Record<string, string> = {
   flac: "audio/flac",
   mp3: "audio/mpeg",
