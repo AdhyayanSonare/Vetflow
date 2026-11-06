@@ -1,6 +1,16 @@
 packages:
   - .
+# pnpm 10 skips dependency install scripts unless they are listed here. Without the
+# embedded-postgres entries, a fresh clone cannot start the demo database.
 onlyBuiltDependencies:
   - '@tailwindcss/oxide'
   - argon2
   - esbuild
+  - '@embedded-postgres/darwin-arm64'
+  - '@embedded-postgres/darwin-x64'
+  - '@embedded-postgres/linux-arm'
+  - '@embedded-postgres/linux-arm64'
+  - '@embedded-postgres/linux-ia32'
+  - '@embedded-postgres/linux-ppc64'
+  - '@embedded-postgres/linux-x64'
+  - '@embedded-postgres/windows-x64'
