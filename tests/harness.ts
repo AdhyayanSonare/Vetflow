@@ -1,7 +1,7 @@
 import pg from "pg";
 import { expect } from "vitest";
 import { createApp } from "../server/app";
-import { hashPassword } from "../server/auth/service";
+import { hashPassword } from "../server/modules/auth/service";
 import { adminUrl, appUrl, createTenant, serve, type Fixture } from "./helpers";
 
 export const PW = "Correct-horse-9";

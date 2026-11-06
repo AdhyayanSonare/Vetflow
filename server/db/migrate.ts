@@ -21,6 +21,10 @@ export async function migrate(opts: MigrateOptions): Promise<string[]> {
   await client.connect();
   const applied: string[] = [];
   try {
+    const me = (await client.query("select rolsuper or rolbypassrls ok, current_user u from pg_roles where rolname = current_user")).rows[0];
+    if (!me?.ok) {
+      throw new Error(`Migrations must run as a role that is a superuser or has BYPASSRLS (the SECURITY DEFINER functions read across tenants). "${me?.u}" is neither.`);
+    }
     await client.query(`create table if not exists schema_migrations (
       name text primary key, checksum text not null, applied_at timestamptz not null default now())`);
     const done = new Map<string, string>(

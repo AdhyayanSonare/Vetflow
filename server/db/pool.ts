@@ -1,11 +1,13 @@
 import pg from "pg";
+import { poolConfig } from "../config/database";
+import { getConfig } from "../config/env";
 
 let pool: pg.Pool | null = null;
 
 /** App pool. Must connect as the non-superuser app role so row-level security applies. */
-export function getPool(url = process.env.DATABASE_URL): pg.Pool {
-  if (!url) throw new Error("DATABASE_URL is not set");
-  if (!pool) pool = new pg.Pool({ connectionString: url, max: 10 });
+export function getPool(url = getConfig().databaseUrl, caCert = getConfig().databaseCaCert): pg.Pool {
+  if (!url) throw new Error("DATABASE_URL is not set. Set DATABASE_URL, or ADMIN_DATABASE_URL with APP_DB_PASSWORD. See .env.example.");
+  if (!pool) pool = new pg.Pool({ ...poolConfig(url, caCert), max: 10, idleTimeoutMillis: 30_000, connectionTimeoutMillis: 15_000 });
   return pool;
 }
 

@@ -2,7 +2,7 @@ import fc from "fast-check";
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { withTenant } from "../../server/db/pool";
-import { confirmReceipt, issueFefo, postMovement, reconcile, StockError, suggestFefo, transferStock } from "../../server/ledger";
+import { confirmReceipt, issueFefo, postMovement, reconcile, StockError, suggestFefo, transferStock } from "../../server/modules/stock/ledger";
 import { adminUrl, appUrl, createTenant, type Fixture } from "../helpers";
 
 let pool: pg.Pool, admin: pg.Pool;

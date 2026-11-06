@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.base.json",
+  "include": ["server/**/*", "shared/**/*", "tests/**/*", "scripts/**/*.ts", "vitest.config.ts"],
+  "compilerOptions": {
+    "lib": ["esnext"],
+    "types": ["node"],
+    "tsBuildInfoFile": "./node_modules/.cache/tsc-server.tsbuildinfo"
+  }
+}
