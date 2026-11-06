@@ -9,6 +9,7 @@ import {
 } from "./auth/service";
 import { withTenant } from "./db/pool";
 import { apiError } from "./http";
+import { registerAdminRoutes } from "./routes/admin";
 import { registerClinicalRoutes } from "./routes/clinical";
 import { registerImportRoutes } from "./routes/import";
 import { registerInventoryRoutes } from "./routes/inventory";
@@ -151,6 +152,7 @@ export function createApp(pool: pg.Pool, opts: { production?: boolean } = {}) {
   registerStockOpsRoutes(app, pool);
   registerReportRoutes(app, pool);
   registerImportRoutes(app, pool);
+  registerAdminRoutes(app, pool);
 
   // Error handler: never leak internals.
   app.use("/api", (err: Error, _req: Request, res: Response, _next: NextFunction) => {
