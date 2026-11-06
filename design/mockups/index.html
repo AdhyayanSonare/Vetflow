@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>VetFlow · Mobile mockups</title><style>:root { --brand: #145c4a; --ink: #14231e; --ink-2: #4a5d56; --ink-3: #5e6f69; --line: #e3e9e6; --surface: #ffffff; --canvas: #f6f8f7; }
+* { box-sizing: border-box; margin: 0; }
+body { font-family: -apple-system, "SF Pro Text", BlinkMacSystemFont, Roboto, "Segoe UI", sans-serif; background: #e6ebe8; color: var(--ink); -webkit-font-smoothing: antialiased; }
+::selection { background: #e9f3ee; }
+header { max-width: 1680px; margin: 0 auto; padding: 40px 32px 8px; }
+h1 { font-size: 22px; line-height: 28px; font-weight: 650; letter-spacing: -.01em; }
+header p { font-size: 15px; line-height: 22px; color: var(--ink-2); margin-top: 6px; max-width: 68ch; }
+header a { color: var(--brand); font-weight: 600; }
+.grid { max-width: 1680px; margin: 0 auto; padding: 24px 32px 64px; display: flex; flex-wrap: wrap; gap: 40px 32px; }
+figure { margin: 0; }
+iframe { display: block; width: 375px; height: 812px; border: 0; border-radius: 28px; background: var(--canvas); box-shadow: 0 0 0 1px rgb(20 35 30 / .08), 0 8px 24px rgb(20 35 30 / .06); }
+figcaption { margin-top: 12px; padding: 0 4px; }
+figcaption b { display: block; font-size: 15px; line-height: 22px; font-weight: 600; }
+figcaption span { display: block; font-size: 13px; line-height: 18px; color: var(--ink-2); max-width: 375px; }
+@media (max-width: 440px) { header, .grid { padding-left: 0; padding-right: 0; } header { padding: 24px 16px 0; } iframe { border-radius: 0; } figcaption { padding: 0 16px; } }
+</style></head><body>
+<header>
+  <h1>VetFlow mobile mockups</h1>
+  <p>Static 375 × 812 screens for the frontend overhaul. Tokens follow DESIGN.md §2.1 with the changes listed in <a href="../INSPIRATION.md">INSPIRATION.md</a>. Each frame is its own file; open one directly to inspect it.</p>
+</header>
+<main class="grid">
+  <figure><iframe src="today.html" title="Today"></iframe><figcaption><b>Today</b><span>Next up first, then the schedule. One summary line replaces the stat cards.</span></figcaption></figure>
+  <figure><iframe src="patients.html" title="Patients"></iframe><figcaption><b>Patients</b><span>List first. 16px search, species chips, 64px rows with an inset divider.</span></figcaption></figure>
+  <figure><iframe src="patient.html" title="Patient record"></iframe><figcaption><b>Patient record</b><span>Allergy chip under the name, owner call and WhatsApp, sticky Start consultation.</span></figcaption></figure>
+  <figure><iframe src="record.html?state=idle" title="Recorder, idle"></iframe><figcaption><b>Record · idle</b><span>One button in the thumb zone, no wave yet.</span></figcaption></figure>
+  <figure><iframe src="record.html?state=recording" title="Recorder, recording"></iframe><figcaption><b>Record · recording</b><span>Tabular timer and the single live wave line. Red only on the stop control and the status pill.</span></figcaption></figure>
+  <figure><iframe src="prescription.html?state=list" title="Prescription"></iframe><figcaption><b>Prescription</b><span>One line per medicine. Save draft and Approve stay in the thumb zone.</span></figcaption></figure>
+  <figure><iframe src="prescription.html?state=sheet" title="Edit medicine sheet"></iframe><figcaption><b>Prescription · edit sheet</b><span>Common values as 44px chips; custom values under Other.</span></figcaption></figure>
+  <figure><iframe src="done.html" title="Done"></iframe><figcaption><b>Done</b><span>The wave settles flat once. Share, follow-up, print, then Next patient.</span></figcaption></figure>
+</main>
+</body></html>

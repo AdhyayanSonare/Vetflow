@@ -1,7 +1,7 @@
 # Render Blueprint: New > Blueprint > pick this repo and branch.
 services:
   - type: web
-    name: vetflow
+    name: vetflow-frontend-edits
     runtime: docker
     plan: free
     healthCheckPath: /api/health

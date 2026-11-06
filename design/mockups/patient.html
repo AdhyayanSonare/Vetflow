@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VetFlow · Max</title>
+<style>
+:root {
+  --brand: #145c4a;
+  --brand-press: #0d4739;
+  --brand-tint: #e9f3ee;
+  --ink: #14231e;
+  --ink-2: #4a5d56;
+  --ink-3: #5e6f69;
+  --line: #e3e9e6;
+  --surface: #ffffff;
+  --canvas: #f6f8f7;
+  --rec: #c2410c;
+  --rec-tint: #fdf1eb;
+  --warn: #955b06;
+  --warn-tint: #fbf5e8;
+  --ok: #15803d;
+  --scrim: rgb(20 35 30 / .40);
+  --ease-out: cubic-bezier(.23, 1, .32, 1);
+  --ease-drawer: cubic-bezier(.32, .72, 0, 1);
+  --dur-press: 120ms;
+  --font: -apple-system, "SF Pro Text", BlinkMacSystemFont, Roboto, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: var(--font);
+  font-size: 15px; line-height: 22px; font-weight: 400;
+  color: var(--ink);
+  background: #dfe5e2;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  caret-color: var(--brand);
+}
+::selection { background: var(--brand-tint); color: var(--ink); }
+button, input, textarea { font: inherit; color: inherit; }
+button { background: none; border: 0; cursor: pointer; }
+a { color: inherit; text-decoration: none; }
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+svg.i { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+svg.i.lg { width: 24px; height: 24px; }
+svg.i.sm { width: 16px; height: 16px; }
+
+/* ---------- device frame ---------- */
+.stack { display: flex; flex-direction: column; align-items: center; gap: 32px; padding: 0 0 32px; }
+.phone {
+  position: relative; width: 375px; height: 812px; overflow: hidden;
+  background: var(--canvas); display: flex; flex-direction: column;
+}
+.phone[hidden] { display: none; }
+.statusbar {
+  height: 47px; flex: none; display: flex; align-items: flex-end; justify-content: space-between;
+  padding: 0 26px 8px 32px; font-size: 15px; line-height: 20px; font-weight: 600; letter-spacing: -.01em;
+}
+.statusbar .sys { display: flex; gap: 6px; align-items: center; }
+.statusbar .sys svg { height: 12px; width: auto; fill: var(--ink); stroke: none; }
+.homebar { position: absolute; left: 50%; bottom: 8px; width: 134px; height: 5px; border-radius: 3px; background: var(--ink); transform: translateX(-50%); z-index: 30; }
+
+/* ---------- top bar ---------- */
+.topbar { height: 56px; flex: none; display: flex; align-items: center; gap: 4px; padding: 0 8px 0 16px; }
+.topbar h1 { font-size: 22px; line-height: 28px; font-weight: 650; letter-spacing: -.01em; flex: 1; }
+.topbar.sub { padding-left: 4px; }
+.topbar .ttl { flex: 1; min-width: 0; }
+.icon-btn {
+  width: 44px; height: 44px; display: inline-grid; place-items: center; border-radius: 22px; color: var(--ink);
+  transition: transform var(--dur-press) var(--ease-out), background-color var(--dur-press) ease;
+}
+.icon-btn:active { transform: scale(.97); background: var(--line); }
+.avatar { width: 32px; height: 32px; border-radius: 16px; background: var(--brand); color: #fff; display: grid; place-items: center; font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .02em; }
+
+/* ---------- content ---------- */
+.content { flex: 1; overflow: hidden; position: relative; }
+.pad { padding: 0 16px; }
+.summary { font-size: 13px; line-height: 18px; color: var(--ink-2); padding: 0 16px; margin-top: -4px; }
+.sec-h { display: flex; align-items: baseline; justify-content: space-between; padding: 28px 16px 8px; }
+.sec-h h2 { font-size: 16px; line-height: 22px; font-weight: 600; }
+.sec-h .meta { font-size: 13px; line-height: 18px; color: var(--ink-3); }
+.link { color: var(--brand); font-weight: 600; font-size: 15px; min-height: 44px; display: inline-flex; align-items: center; padding: 0 4px; margin: -11px -4px; }
+
+/* ---------- list ---------- */
+.list { background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); list-style: none; }
+.row {
+  position: relative; display: flex; align-items: center; gap: 16px; width: 100%; text-align: left;
+  min-height: 64px; padding: 10px 16px; color: inherit; text-decoration: none;
+  transition: background-color var(--dur-press) ease;
+}
+.row:active { background: var(--canvas); }
+.row.s { min-height: 56px; padding-top: 8px; padding-bottom: 8px; }
+.list > li + li > .row::before { content: ""; position: absolute; top: 0; left: 72px; right: 0; height: 1px; background: var(--line); }
+.list.t > li + li > .row::before { left: 16px; }
+.lead { width: 40px; height: 40px; border-radius: 20px; background: var(--canvas); color: var(--ink-2); display: grid; place-items: center; flex: none; }
+.body { flex: 1; min-width: 0; }
+.body > * { display: block; }
+.t1 { font-size: 15px; line-height: 22px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.t2 { font-size: 13px; line-height: 18px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.trail { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--ink-3); flex: none; text-align: right; }
+.chev { color: var(--ink-3); }
+
+/* ---------- status ---------- */
+.status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--ink-2); }
+.status::before { content: ""; width: 8px; height: 8px; border-radius: 4px; background: var(--ink-3); }
+.status.ok { color: var(--ok); } .status.ok::before { background: var(--ok); }
+.status.warn { color: var(--warn); } .status.warn::before { background: var(--warn); }
+.status.rec { color: var(--rec); } .status.rec::before { background: var(--rec); }
+.status.brand { color: var(--brand); } .status.brand::before { background: var(--brand); }
+
+/* ---------- buttons ---------- */
+.btn {
+  min-height: 44px; padding: 0 16px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font-size: 15px; line-height: 22px; font-weight: 600; white-space: nowrap;
+  transition: transform var(--dur-press) var(--ease-out), background-color var(--dur-press) ease;
+}
+.btn:active { transform: scale(.97); }
+.btn.lg { min-height: 48px; border-radius: 10px; }
+.btn.primary { background: var(--brand); color: #fff; }
+.btn.primary:active { background: var(--brand-press); }
+.btn.secondary { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
+.btn.ghost { color: var(--brand); }
+.btn.danger { color: var(--rec); }
+.btn.block { width: 100%; }
+.icon-btn.outline { box-shadow: inset 0 0 0 1px var(--line); background: var(--surface); color: var(--brand); }
+.actionbar { flex: none; display: flex; gap: 12px; padding: 12px 16px; background: var(--surface); border-top: 1px solid var(--line); }
+.actionbar .btn { flex: 1; }
+.actionbar.flow { padding-bottom: 34px; }
+
+/* ---------- chips ---------- */
+.chips { display: flex; gap: 8px; overflow: hidden; padding: 0 16px; }
+.fchip { min-height: 44px; display: inline-flex; align-items: center; flex: none; }
+.fchip span {
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 14px; border-radius: 16px;
+  font-size: 13px; line-height: 18px; font-weight: 500; color: var(--ink-2); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line);
+  transition: background-color var(--dur-press) ease;
+}
+.fchip span b { font-weight: 500; color: var(--ink-3); }
+.fchip[aria-pressed="true"] span { background: var(--ink); color: #fff; box-shadow: none; }
+.fchip[aria-pressed="true"] span b { color: #c9d3cf; }
+
+/* ---------- allergy ---------- */
+.allergy { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px 0 10px; border-radius: 8px; background: var(--warn-tint); color: var(--warn); font-size: 13px; line-height: 18px; font-weight: 600; }
+
+/* ---------- tab bar ---------- */
+.tabbar { flex: none; height: 84px; padding: 0 4px 20px; display: flex; align-items: stretch; background: var(--surface); border-top: 1px solid var(--line); }
+.tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--ink-3); font-size: 12px; line-height: 16px; font-weight: 500; text-decoration: none; min-height: 64px; }
+.tab .pill { width: 56px; height: 32px; border-radius: 16px; display: grid; place-items: center; transition: background-color 200ms var(--ease-out); }
+.tab[aria-current="page"] { color: var(--brand); font-weight: 600; }
+.tab[aria-current="page"] .pill { background: var(--brand-tint); }
+.tab.rec .disc { width: 52px; height: 52px; border-radius: 26px; background: var(--brand); color: #fff; display: grid; place-items: center; transition: transform var(--dur-press) var(--ease-out); }
+.tab.rec:active .disc { transform: scale(.97); }
+.tab.rec { gap: 0; }
+.tab.rec .lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+
+/* ---------- patient strip (consult) ---------- */
+.strip { display: flex; align-items: center; gap: 12px; padding: 0 16px 12px; }
+.strip .lead { width: 36px; height: 36px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+.step { font-size: 13px; line-height: 18px; color: var(--ink-3); font-weight: 500; padding-right: 8px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0ms !important; animation: none !important; }
+}
+
+.hdr { padding: 4px 16px 16px; display: flex; gap: 16px; align-items: flex-start; }
+.hdr .lead { width: 56px; height: 56px; border-radius: 28px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+.hdr h1 { font-size: 22px; line-height: 28px; font-weight: 650; letter-spacing: -.01em; }
+.hdr .t2 { white-space: normal; }
+.hdr .id { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--ink-3); margin-top: 2px; }
+.hdr .allergy { margin-top: 12px; }
+.owner .row { gap: 12px; }
+.owner .acts { display: flex; gap: 8px; }
+.tabs { display: flex; border-bottom: 1px solid var(--line); padding: 0 8px; margin-top: 8px; background: var(--canvas); }
+.tabs button { min-height: 44px; padding: 0 12px; font-size: 15px; line-height: 22px; font-weight: 500; color: var(--ink-2); position: relative; }
+.tabs button[aria-selected="true"] { color: var(--ink); font-weight: 600; }
+.tabs button[aria-selected="true"]::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: -1px; height: 2px; border-radius: 1px; background: var(--brand); }
+.kv { background: var(--surface); border-bottom: 1px solid var(--line); }
+.kv > div { padding: 12px 16px; position: relative; }
+.kv > div + div::before { content: ""; position: absolute; top: 0; left: 16px; right: 0; height: 1px; background: var(--line); }
+.kv dt { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--ink-3); }
+.kv dd { font-size: 15px; line-height: 22px; margin-top: 2px; }
+.kv dd small { display: block; font-size: 13px; line-height: 18px; color: var(--ink-2); }
+.kv .due { color: var(--warn); font-weight: 600; }
+.sticky { flex: none; padding: 12px 16px; background: var(--surface); border-top: 1px solid var(--line); }
+.sticky .dot { width: 10px; height: 10px; border-radius: 5px; background: #fff; }
+
+</style>
+</head>
+<body>
+
+<div class="stack">
+<main class="phone">
+  <div class="statusbar"><span class="num">9:41</span><span class="sys" aria-hidden="true">
+<svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+<svg viewBox="0 0 16 12"><path d="M8 2.2c2.3 0 4.4.9 6 2.4l1.2-1.3A10.4 10.4 0 0 0 8 .4C5.2.4 2.7 1.5.8 3.3L2 4.6a8.6 8.6 0 0 1 6-2.4zm0 3.6c1.3 0 2.5.5 3.4 1.3l1.2-1.3A6.7 6.7 0 0 0 8 4c-1.8 0-3.4.7-4.6 1.8l1.2 1.3c.9-.8 2.1-1.3 3.4-1.3zM8 9.4l2-2.1a3 3 0 0 0-4 0z"/></svg>
+<svg viewBox="0 0 27 12"><rect x=".5" y=".5" width="23" height="11" rx="3" fill="none" stroke="#14231e" opacity=".4"/><rect x="2" y="2" width="18" height="8" rx="1.6"/><path d="M25 4v4a2 2 0 0 0 0-4z" opacity=".4"/></svg>
+</span></div>
+  <header class="topbar sub">
+    <a class="icon-btn" href="patients.html" aria-label="Back to Patients"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 5.5-6.5 6.5 6.5 6.5"/></svg></a>
+    <span class="ttl"></span>
+    <button class="icon-btn" aria-label="More actions for Max"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="18.5" r="1.3" fill="currentColor" stroke="none"/></svg></button>
+  </header>
+  <div class="content">
+    <section class="hdr">
+      <span class="lead"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 6h7a2.5 2.5 0 0 1 2.5 2.5V14a6 6 0 0 1-12 0V8.5A2.5 2.5 0 0 1 8.5 6z"/><path d="M8.5 6C5.8 6 4 7.8 4 10.5v3.2c0 .9 1 1.4 1.7.8L7.5 13M15.5 6c2.7 0 4.5 1.8 4.5 4.5v3.2c0 .9-1 1.4-1.7.8L16.5 13"/><path d="M10 17c.5.6 1.2.9 2 .9s1.5-.3 2-.9"/><circle cx="10" cy="11" r=".6" fill="currentColor"/><circle cx="14" cy="11" r=".6" fill="currentColor"/><path d="M11 14.2h2l-1 1.1z" fill="currentColor"/></svg></span>
+      <div class="body">
+        <h1>Max</h1>
+        <p class="t2 num">German Shepherd · Male · 6 y · 32.4 kg</p>
+        <p class="id num">VET-2026-00118</p>
+        <span class="allergy"><svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 4.3 2.9 17.2A2 2 0 0 0 4.6 20h14.8a2 2 0 0 0 1.7-2.8L13.7 4.3a2 2 0 0 0-3.4 0z"/><path d="M12 9.5v4M12 17h.01"/></svg>Allergic to penicillin</span>
+      </div>
+    </section>
+
+    <ul class="list owner">
+      <li><div class="row s"><span class="body"><span class="t1">Priya Nair</span><span class="t2 num">Owner · +91 98200 45512</span></span>
+        <span class="acts">
+          <a class="icon-btn outline" href="tel:+919820045512" aria-label="Call Priya Nair"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 3.5h2.6l1.5 4-2 1.3a10.5 10.5 0 0 0 6.5 6.5l1.3-2 4 1.5v2.6a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.6 5.7a2 2 0 0 1 2-2.2z"/></svg></a>
+          <a class="icon-btn outline" href="#" aria-label="WhatsApp Priya Nair"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.3-3.9A8 8 0 1 1 8.4 19z"/></svg></a>
+        </span></div></li>
+    </ul>
+
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true">Summary</button>
+      <button role="tab" aria-selected="false">History</button>
+      <button role="tab" aria-selected="false">Prescriptions</button>
+    </div>
+    <dl class="kv">
+      <div><dt>Last visit · 31 Oct</dt><dd>Ear recheck, left ear<small>Discharge reduced. Continue drops 5 more days.</small></dd></div>
+      <div><dt>Ongoing</dt><dd>Chronic otitis externa (left)</dd></div>
+      <div><dt>Current medicines</dt><dd class="num">Otomax ear drops · 4 drops · BID</dd></div>
+      <div><dt>Vaccinations</dt><dd class="num"><span class="due">Rabies due 14 Nov</span> · DHPPi done 2 Mar</dd></div>
+    </dl>
+  </div>
+  <div class="sticky"><a class="btn lg primary block" href="record.html"><span class="dot" aria-hidden="true"></span>Start consultation</a></div>
+  <nav class="tabbar" aria-label="Primary"><a class="tab" href="#"><span class="pill"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></span>Today</a><a class="tab" href="#" aria-current="page"><span class="pill"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 6h7a2.5 2.5 0 0 1 2.5 2.5V14a6 6 0 0 1-12 0V8.5A2.5 2.5 0 0 1 8.5 6z"/><path d="M8.5 6C5.8 6 4 7.8 4 10.5v3.2c0 .9 1 1.4 1.7.8L7.5 13M15.5 6c2.7 0 4.5 1.8 4.5 4.5v3.2c0 .9-1 1.4-1.7.8L16.5 13"/><path d="M10 17c.5.6 1.2.9 2 .9s1.5-.3 2-.9"/><circle cx="10" cy="11" r=".6" fill="currentColor"/><circle cx="14" cy="11" r=".6" fill="currentColor"/><path d="M11 14.2h2l-1 1.1z" fill="currentColor"/></svg></span>Patients</a><a class="tab rec" href="record.html" style="position:relative"><span class="disc"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></span><span class="lbl">Record consultation</span></a><a class="tab" href="#"><span class="pill"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3.5H7.5A1.5 1.5 0 0 0 6 5v14a1.5 1.5 0 0 0 1.5 1.5h9A1.5 1.5 0 0 0 18 19V7.5z"/><path d="M14 3.5v4h4M9 12h6M9 16h4"/></svg></span>Prescriptions</a><a class="tab" href="#"><span class="pill"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="18.5" cy="12" r="1.3" fill="currentColor" stroke="none"/></svg></span>More</a></nav>
+  <div class="homebar" aria-hidden="true"></div>
+</main>
+</div>
+
+</body>
+</html>
