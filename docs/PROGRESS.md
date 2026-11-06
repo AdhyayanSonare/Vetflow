@@ -10,8 +10,15 @@
 - [ ] CLAUDE.md rewrite (150 lines or fewer), skills, hooks
 - [ ] Split Home.tsx into routed modules
 
+## Wave 1/2 work done so far
+- [x] Postgres schema v1 (db/migrations 0001-0004), forced RLS, app role, append-only ledger and audit log
+- [x] Checksummed migration runner (applied migrations are immutable)
+- [x] Ledger: one SQL function writes ledger row and balance together; FEFO, receipts, transfers, reconcile
+- [x] Tests on a real PostgreSQL 18: 27 DB tests (RLS as app role, ledger properties, race on last unit, idempotency, overrides)
+- [ ] Supabase demo database: project found (Tokyo, empty); needs the database password in .env (not yet supplied)
+
 ## Gate results
-None recorded yet.
+`pnpm vitest run tests/db`: 27 of 27 pass (2026-11-07). Full `pnpm check` and e2e not yet in place.
 
 ## Measured numbers
 None yet. ASR figures stay empty until real recordings exist.
