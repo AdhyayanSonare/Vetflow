@@ -1,34 +1,79 @@
-# VetFlow AI
+# Vetflow
 
-React / Express / tRPC / Drizzle starter, adapted from the Sandbox web-db-user template.
+Clinical records, prescriptions and medicine inventory for veterinary hospital groups, by Astraon Labs.
 
-- `pnpm dev`: development server; honors `PORT` (default 3000).
-- `pnpm build` / `pnpm start`: build and serve `dist/index.js` and `dist/public/`.
-- `pnpm db:migrate`: apply checked-in migrations. `pnpm db:push`: generate and apply new schema changes.
-- `pnpm check` / `pnpm test`: types and application tests.
+- **Clinical:** patients and owners, consultations, voice or typed dictation that becomes a draft for the vet to review, prescriptions with a hard doctor-approval step.
+- **Inventory:** catalogue, suppliers, purchase orders and receipts, batches and expiry, transfers between branches, stock counts, multi-dose vials, low-stock and expiry alerts, nine reports, Excel import.
+- **Dispensing:** only a confirmed dispense takes stock out. An approved prescription alone changes nothing. Controlled medicines need a second person.
+- **Safe by design:** every tenant row is protected by PostgreSQL row-level security. The stock ledger is append-only. Every high-impact action asks first and is audited.
 
-## Deploying (Render)
+## Run it on your laptop in one command
 
-`render.yaml` is a Blueprint that builds the existing `Dockerfile`. In Render: **New > Blueprint**, pick this repo and the `voice-transcription` branch, then fill in the two secrets it asks for:
+You need **Node 22.12 or newer**. Nothing else: no Docker, no database to install.
 
-- `GROQ_API_KEY`: your Groq key (stays on the server).
-- `SITE_PASSWORD`: one shared password for the whole site (browser prompts for it; any username works). If unset, the site and the Groq-backed endpoints are open to anyone with the URL.
+```bash
+corepack enable          # once, so the right pnpm version is used
+pnpm install
+pnpm demo
+```
 
-The microphone only works over HTTPS, which Render provides. Data is still stored in each browser (localStorage). Free instances sleep after idle time, so the first load can take about a minute.
+`pnpm demo` starts a real PostgreSQL, applies the migrations, loads a synthetic demo clinic, builds the app and serves it at <http://localhost:3000>. Press Ctrl+C to stop. The data stays in `.demo-data/` between runs. `pnpm demo:reset` starts fresh.
 
-## Voice transcription
+Sign-in details for the demo accounts are printed when it starts and listed in [docs/demo.md](docs/demo.md). They are synthetic and public. **Never use them for real data.**
 
-Consultation recording and audio upload use Groq's Whisper (`whisper-large-v3`). Set `GROQ_API_KEY` in the server environment (`.env`, gitignored); `GROQ_API_URL` is optional and defaults to `https://api.groq.com/openai/v1`. The key is only read on the server and is never sent to the browser.
+It works on Windows, macOS and Linux, on a phone or tablet browser on the same network (open `http://<your-laptop-ip>:3000`), and at any screen size.
 
-- **Browser:** Start/Pause/Resume/Stop use `getUserMedia` + `MediaRecorder` (`client/src/hooks/useAudioRecorder.ts`); microphone tracks are released on stop and on unmount. "Upload audio file" feeds the same flow. Both validate type and size before upload (`client/src/lib/voice.ts`). Failed transcriptions keep the audio so the user can retry.
-- **Server:** `POST /api/voice/transcribe` (`server/voiceUpload.ts`) takes the raw audio bytes as the request body with an `audio/*` Content-Type and returns `{ transcript, language, requestId }` or `{ error: { code, message } }`. It enforces the 25 MB Groq limit, checks the declared type and the file's magic bytes, rate-limits per client (12/min), never fetches user-supplied URLs, and does not log audio or secrets. The previous URL-based `voice.transcribe` tRPC mutation was removed because it allowed server-side requests to arbitrary URLs.
-- **Supported formats:** MP3, WAV, M4A/MP4, WebM, OGG/Opus, FLAC; max 25 MB.
-- **Extraction:** after transcription, the browser POSTs the transcript to `POST /api/consultation/extract` (`server/consultationExtract.ts`, `server/_core/consultationExtraction.ts`). A Groq chat model (default `openai/gpt-oss-120b`, override with `GROQ_EXTRACTION_MODEL`) returns JSON for the clinical notes and medicines. The prompt allows only what was explicitly said (unstated fields stay empty), the transcript is treated as data, and medicines whose name never appears in the transcript are dropped. Output is validated, and the transcript is never logged. If extraction fails the vet can retry or fill the notes in manually.
-- **Clinical notes:** the transcript is shown verbatim. Extracted notes and medicines are drafts for veterinarian review; diagnosis defaults to "Pending doctor's confirmation" unless one was stated, and nothing is final until the vet saves and approves. Note: the endpoint has no sign-in check because the app currently has no login flow in the UI; add `protectedProcedure`-style auth before exposing it publicly.
-- **Tests:** `pnpm test` covers the upload and extraction routes (Groq mocked), the Groq helper and client helpers. Browser recording itself needs a real microphone and is verified manually.
+### Voice
 
-Start with the Webdev skill's default-template guide. Platform login, storage, payments and service contracts live in its shared references; read the relevant capability before extending its helper.
+Voice transcription and note drafting use a hosted API (Groq) when `GROQ_API_KEY` is in `.env`. Without a key everything else still works, and you can type or paste a dictation to try the draft flow. See [Configuration](#configuration).
 
-`server/_core/publicConfig.ts` exposes only named public runtime values. Private keys stay server-side. The platform serves managed `/manus-storage/` assets; the application does not register a second proxy.
+## Commands
 
-Platform configuration is readable and editable through `webdev.config`. Default settings are initial values, not enforced constraints. The agent may modify the files, commands and configuration or follow the flexible guide for another stack.
+| Command | What it does |
+|---|---|
+| `pnpm demo` / `pnpm demo:reset` | The one-command demo (see above). |
+| `pnpm dev` | The server with hot reload, against the database in `.env`. |
+| `pnpm build` / `pnpm start` | Build the client and server, then run `dist/`. |
+| `pnpm check` | Type check, lint, and all unit and integration tests. |
+| `pnpm test` | Vitest: unit tests and API tests against a real PostgreSQL started by the tests. |
+| `pnpm e2e` | Playwright end-to-end tests at phone, tablet and desktop sizes. |
+| `pnpm db:migrate` | Apply pending migrations to the database in `.env`. |
+| `pnpm db:seed` | Load the demo clinic into an **empty** database. |
+| `pnpm db:check` | Check the database and the app role's security settings. Read only. |
+| `pnpm db:baseline` | Verify and record migrations for a database set up by hand. |
+| `pnpm worker` | The nightly jobs (reconciliation, alerts, transcript retention). |
+| `pnpm licences` / `pnpm secrets` | Licence allow-list and secret scans. |
+
+## Configuration
+
+All settings are environment variables, read in one place (`server/config/env.ts`) and documented in [.env.example](.env.example). Copy it to `.env`.
+
+- **Database:** `DATABASE_URL` for the app role, or `ADMIN_DATABASE_URL` plus `APP_DB_PASSWORD` (the app URL is derived). Hosted databases are reached over TLS with certificate checking always on. A CA file can be given in `DATABASE_CA_CERT`; the Supabase root CA is bundled in `certs/`.
+- **Voice:** `GROQ_API_KEY` for hosted speech and note drafting, or `ASR_URL` for the local speech service in `asr/`.
+- **Optional:** `SITE_PASSWORD` puts the whole site behind a shared password (handy for a public demo).
+
+## Structure
+
+```
+client/src/        React app: app/ (shell, routes), features/ (one folder per area), components/, hooks/, lib/, styles/
+server/            Express API: modules/ (one folder per domain), http/ (shared plumbing), config/, db/, jobs/
+shared/            Code used by both sides: permissions, request and response types
+db/migrations/     SQL migrations. Applied files are immutable.
+asr/               Speech service (Python): Canary and faster-whisper behind one interface
+tests/ e2e/ eval/  API and database tests, browser tests, speech evaluation
+deploy/ docs/      Docker, Caddy, backups; architecture, runbooks and guides
+```
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit together.
+
+## Deploying
+
+One Linux VM with Docker: `docker compose up -d` brings up PostgreSQL, the app, the nightly worker, a TLS proxy and encrypted backups. Steps are in [docs/runbooks/deploy.md](docs/runbooks/deploy.md), with [backup](docs/runbooks/backup.md), [restore](docs/runbooks/restore.md) and [incident](docs/runbooks/incident.md) runbooks.
+
+## Documentation
+
+[Architecture](docs/ARCHITECTURE.md) · [Demo guide](docs/demo.md) · [Admin guide](docs/guide/admin.md) · [User guide](docs/guide/users.md) · [Test map](docs/TEST-MAP.md) · [Progress and measured numbers](docs/PROGRESS.md) · [Decisions](docs/adr/)
+
+## Licences
+
+Every dependency is on an allow list (MIT, Apache-2.0, BSD, ISC, PostgreSQL) checked in CI. The three typefaces are SIL Open Font Licence, as the brand requires. The speech model credit (Canary-180M-Flash, NVIDIA, CC-BY-4.0) is shown in the app under Licences.
