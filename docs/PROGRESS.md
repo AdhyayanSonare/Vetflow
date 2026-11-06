@@ -15,10 +15,11 @@
 - [x] Checksummed migration runner (applied migrations are immutable)
 - [x] Ledger: one SQL function writes ledger row and balance together; FEFO, receipts, transfers, reconcile
 - [x] Tests on a real PostgreSQL 18: 27 DB tests (RLS as app role, ledger properties, race on last unit, idempotency, overrides)
+- [x] Auth: Argon2id, 12-hour sessions with hashed tokens, CSRF header check, lockout after 5 failures, per-address rate limit, password reset (token delivery is logged in dev; no mail server yet), role permission map, security headers. 12 tests.
 - [ ] Supabase demo database: project found (Tokyo, empty); needs the database password in .env (not yet supplied)
 
 ## Gate results
-`pnpm vitest run tests/db`: 27 of 27 pass (2026-11-07). Full `pnpm check` and e2e not yet in place.
+`pnpm vitest run tests/db`: 39 of 39 pass (DB, ledger, auth) (2026-11-07). Full `pnpm check` and e2e not yet in place.
 
 ## Measured numbers
 None yet. ASR figures stay empty until real recordings exist.
