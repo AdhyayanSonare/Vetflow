@@ -34,7 +34,7 @@ export async function serve(app: Express) {
   const jar = new Map<string, string>();
   let csrf = "";
   const call = async (method: string, path: string, body?: unknown, opts: { csrf?: boolean; noCookie?: boolean } = {}) => {
-    const headers: Record<string, string> = { "content-type": "application/json" };
+    const headers: Record<string, string> = { "content-type": "application/json", connection: "close" };
     if (!opts.noCookie && jar.size) headers.cookie = [...jar].map(([k, v]) => `${k}=${v}`).join("; ");
     if (opts.csrf !== false && csrf && method !== "GET") headers["x-csrf-token"] = csrf;
     const res = await fetch(base + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), redirect: "manual" });

@@ -8,6 +8,8 @@ import {
   SESSION_HOURS, type SessionUser,
 } from "./auth/service";
 import { withTenant } from "./db/pool";
+import { apiError } from "./http";
+import { registerInventoryRoutes } from "./routes/inventory";
 
 export const COOKIE = "vf_session";
 
@@ -18,8 +20,7 @@ declare global {
   }
 }
 
-export const apiError = (res: Response, status: number, code: string, message: string) =>
-  res.status(status).json({ error: { code, message } });
+export { apiError };
 
 export function requirePermission(p: Permission) {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -140,6 +141,8 @@ export function createApp(pool: pg.Pool, opts: { production?: boolean } = {}) {
       res.json({ ok: true });
     } catch (e) { next(e); }
   });
+
+  registerInventoryRoutes(app, pool);
 
   // Error handler: never leak internals.
   app.use("/api", (err: Error, _req: Request, res: Response, _next: NextFunction) => {
