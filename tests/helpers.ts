@@ -1,0 +1,25 @@
+import pg from "pg";
+
+export const adminUrl = () => process.env.TEST_ADMIN_URL!;
+export const appUrl = () => process.env.TEST_APP_URL!;
+
+export type Fixture = {
+  tenantId: string; branchId: string; storeId: string; userId: string; itemId: string;
+};
+
+/** Creates a tenant with a branch, store, user and item using the admin role (bypasses RLS). */
+export async function createTenant(name: string): Promise<Fixture> {
+  const c = new pg.Client({ connectionString: adminUrl() });
+  await c.connect();
+  try {
+    const t = (await c.query("insert into tenants (name) values ($1) returning id", [name])).rows[0].id;
+    await c.query("insert into tenant_settings (tenant_id) values ($1)", [t]);
+    const b = (await c.query("insert into branches (tenant_id, name) values ($1,'Main') returning id", [t])).rows[0].id;
+    const s = (await c.query("insert into stores (tenant_id, branch_id, kind, name) values ($1,$2,'central',$3) returning id", [t, b, `${name} central`])).rows[0].id;
+    const u = (await c.query(
+      "insert into users (tenant_id, email, name, password_hash, role) values ($1,$2,'Test','x','admin') returning id",
+      [t, `${name.toLowerCase().replace(/\W/g, "")}-${Date.now()}@example.test`])).rows[0].id;
+    const i = (await c.query("insert into items (tenant_id, generic_name, unit) values ($1,'Amoxicillin','tablet') returning id", [t])).rows[0].id;
+    return { tenantId: t, branchId: b, storeId: s, userId: u, itemId: i };
+  } finally { await c.end(); }
+}
