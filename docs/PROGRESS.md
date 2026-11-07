@@ -34,7 +34,7 @@ Also fixed (migration 0012, `db:seed`, start-up warnings):
 Open, in order of importance:
 1. MEDIUM (narrowed from HIGH): plain issue and return refuse controlled items, and opening a controlled vial now needs a second person (shared `requireWitness`, attempt-limited, tested, with witness fields in the vial dialog). Still without a second-person step: transfers of controlled stock between stores.
 2. MEDIUM: lockout returns 423 vs 401 (account-existence oracle and lock-out DoS); no per-IP cap on sign-in; email not trimmed in limiter key.
-3. MEDIUM: over-dispensing race (two parallel confirms) and uncapped lines with no quantity; a receipt can reprice an existing batch; anonymous large-body buffering; a crafted .xlsx can exhaust memory.
+3. MEDIUM: still open: uncapped prescription lines with no quantity; anonymous large-body buffering; a crafted .xlsx can exhaust memory. Fixed without a dedicated regression test: parallel dispense confirms now lock the prescription row; a receipt no longer reprices an existing batch (the existing suite passes, but nothing asserts the repricing case); the sign-in limiter key trims the email.
 4. LOW: CI permissions and pinned images, backup passes the DB password on the command line and runs as root, no self-service password change, audit gaps on return, and others in the review.
 
 Controlled-stock transfers and the other open items remain; judge hardening against that list.

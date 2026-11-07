@@ -68,7 +68,7 @@ export function registerDispensingRoutes(app: Express, pool: pg.Pool) {
       "select dl.item_id, dl.quantity::float qty, i.controlled, i.generic_name from dispense_lines dl join items i on i.id = dl.item_id where dl.dispense_id = $1 order by dl.id", [id])).rows;
 
     if (d.prescription_id) {
-      const rx = (await c.query("select status from prescriptions where id = $1", [d.prescription_id])).rows[0];
+      const rx = (await c.query("select status from prescriptions where id = $1 for update", [d.prescription_id])).rows[0];
       if (rx?.status !== "approved") throw new HttpError(409, "not_approved", "The prescription is no longer approved.");
       const limits = (await c.query(
         `select l.item_id, sum(l.quantity)::float prescribed,

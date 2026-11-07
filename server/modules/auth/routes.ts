@@ -23,7 +23,7 @@ export const RESET_BY_ADMIN_MESSAGE =
 export function registerAuthRoutes(app: Express, pool: pg.Pool, opts: AuthRouteOptions = {}) {
   const loginLimit = rateLimit({
     windowMs: 15 * 60_000, max: 10, message: "Too many sign-in attempts. Try again in a few minutes.",
-    key: req => `${req.ip}|${String(req.body?.email ?? "").toLowerCase()}`,
+    key: req => `${req.ip}|${String(req.body?.email ?? "").trim().toLowerCase()}`,
   });
   const resetLimit = rateLimit({ windowMs: 15 * 60_000, max: 5, message: "Too many requests. Try again later.", key: req => req.ip ?? "x" });
   const cookie = { httpOnly: true, sameSite: "lax" as const, secure: !!opts.production, path: "/", maxAge: SESSION_HOURS * 3600_000 };

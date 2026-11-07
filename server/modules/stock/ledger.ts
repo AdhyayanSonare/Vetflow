@@ -117,7 +117,7 @@ export async function confirmReceipt(c: pg.PoolClient, tenantId: string, receipt
     const batch = (await c.query(
       `insert into batches (tenant_id, item_id, batch_no, expiry_date, mfg_date, unit_cost_paise, supplier_id)
        values ($1,$2,$3,$4,$5,$6,$7)
-       on conflict (tenant_id, item_id, batch_no, expiry_date) do update set unit_cost_paise = excluded.unit_cost_paise
+       on conflict (tenant_id, item_id, batch_no, expiry_date) do update set unit_cost_paise = batches.unit_cost_paise
        returning id`,
       [tenantId, l.item_id, l.batch_no, l.expiry_date, l.mfg_date, l.unit_cost_paise, rc.supplier_id])).rows[0];
     await postMovement(c, {
