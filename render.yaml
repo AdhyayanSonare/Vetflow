@@ -21,6 +21,9 @@ services:
         value: "true"
       - key: LOG_LEVEL
         value: info
+      # Public demo: no site password pop-up, one-click demo accounts on the sign-in page. Invented data only.
+      - key: DEMO_MODE
+        value: "true"
       # The owner connection string of the database, for migrations and the app-role URL. Secret: you enter it in Render.
       - key: ADMIN_DATABASE_URL
         sync: false

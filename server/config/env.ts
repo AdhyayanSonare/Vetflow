@@ -32,6 +32,8 @@ const EnvSchema = z.object({
 
   // Defaults to true in production. Set false only for plain-HTTP local use such as the demo.
   COOKIE_SECURE: z.enum(["true", "false"]).optional(),
+  // Public demo: no site password, and the sign-in page offers one-click demo accounts. Only for invented data.
+  DEMO_MODE: z.enum(["true", "false"]).optional(),
 });
 
 export type AsrKind = "groq" | "local" | "none";
@@ -47,6 +49,7 @@ export type Config = {
   cookieSecure: boolean;
   databaseCaCert: string | undefined;
   sitePassword: string | undefined;
+  demoMode: boolean;
   groq: { apiKey: string | undefined; apiUrl: string; transcribeModel: string; extractionModel: string };
   asr: { kind: AsrKind; localUrl: string | undefined };
   /** What this server can do right now. Shown to the UI so it can hide or explain a missing feature. */
@@ -87,6 +90,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     cookieSecure: e.COOKIE_SECURE ? e.COOKIE_SECURE === "true" : e.NODE_ENV === "production",
     databaseCaCert: e.DATABASE_CA_CERT,
     sitePassword: e.SITE_PASSWORD,
+    demoMode: e.DEMO_MODE === "true",
     groq: { apiKey: e.GROQ_API_KEY, apiUrl: e.GROQ_API_URL.replace(/\/$/, ""), transcribeModel: e.GROQ_TRANSCRIBE_MODEL, extractionModel: e.GROQ_EXTRACTION_MODEL },
     asr: { kind: asrKind, localUrl: e.ASR_URL },
     capabilities: { transcription: asrKind !== "none", extraction: !!e.GROQ_API_KEY },

@@ -20,6 +20,8 @@ export type AppOptions = {
   extractor?: Extractor | null;
   /** When set, the whole site sits behind this shared password. */
   sitePassword?: string;
+  /** Public demo: no site password; the sign-in page lists the demo accounts. */
+  demoMode?: boolean;
   logger?: Logger;
 };
 
@@ -37,7 +39,7 @@ export function createApp(pool: pg.Pool, opts: AppOptions = {}) {
   app.use(requestLogger(log));
   const secure = opts.secureCookies ?? !!opts.production;
   app.use(securityHeaders({ production: secure, relaxCsp: opts.relaxCsp }));
-  app.use(sitePassword(() => opts.sitePassword));
+  app.use(sitePassword(() => (opts.demoMode ? undefined : opts.sitePassword)));
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());
 
@@ -49,6 +51,7 @@ export function createApp(pool: pg.Pool, opts: AppOptions = {}) {
   app.use("/api", attachSession(pool));
   registerAuthRoutes(app, pool, {
     production: secure,
+    demoMode: !!opts.demoMode,
     // No mail server is wired up yet, so by default nothing delivers a token. Tests set app.locals.onResetToken.
     resetDelivery: () => app.locals.onResetToken as ((email: string, token: string) => void) | undefined,
   });

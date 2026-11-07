@@ -165,3 +165,24 @@ describe("headers and permissions", () => {
     expect(can("admin", "users.manage")).toBe(true);
   });
 });
+
+describe("public demo mode", () => {
+  it("is off by default, and when on it lists only the invented demo accounts and drops the site password", async () => {
+    const off = await serve(createApp(pool, { sitePassword: "site-pw-123" }));
+    expect((await off.call("GET", "/api/auth/demo")).status).toBe(401); // the site password still guards everything
+    await off.close();
+
+    const plain = await serve(createApp(pool));
+    expect((await plain.call("GET", "/api/auth/demo")).json).toEqual({ enabled: false, accounts: [] });
+    await plain.close();
+
+    const on = await serve(createApp(pool, { demoMode: true, sitePassword: "site-pw-123" }));
+    const r = await on.call("GET", "/api/auth/demo");
+    expect(r.status).toBe(200);
+    expect(r.json.enabled).toBe(true);
+    expect(r.json.accounts.length).toBeGreaterThan(0);
+    for (const a of r.json.accounts) expect(a.email).toMatch(/@greenfield\.demo$/);
+    await on.close();
+  });
+});
+

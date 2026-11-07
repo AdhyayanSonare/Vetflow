@@ -46,6 +46,7 @@ export async function startServer(config: Config = getConfig()) {
     asr: createAsrClient(config),
     extractor: createExtractor(config.groq),
     sitePassword: config.sitePassword,
+    demoMode: config.demoMode,
   });
   const server = createServer(app);
 

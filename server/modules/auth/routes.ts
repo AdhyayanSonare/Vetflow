@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import type pg from "pg";
+import { DEMO_USERS } from "../../../shared/demo";
 import { apiError } from "../../http/errors";
 import { SESSION_COOKIE } from "../../http/middleware";
 import { rateLimit } from "../../http/rateLimit";
@@ -9,6 +10,7 @@ import {
 
 export type AuthRouteOptions = {
   production?: boolean;
+  demoMode?: boolean;
   /**
    * Returns the function that delivers a reset token (by mail, once a mail server is wired in), or
    * nothing when this system cannot deliver one. With no delivery, no token is created and people are
@@ -27,6 +29,11 @@ export function registerAuthRoutes(app: Express, pool: pg.Pool, opts: AuthRouteO
   });
   const resetLimit = rateLimit({ windowMs: 15 * 60_000, max: 5, message: "Too many requests. Try again later.", key: req => req.ip ?? "x" });
   const cookie = { httpOnly: true, sameSite: "lax" as const, secure: !!opts.production, path: "/", maxAge: SESSION_HOURS * 3600_000 };
+
+  // Lets the sign-in page offer one-click demo accounts. Off unless DEMO_MODE is set, and then it only names the invented demo users.
+  app.get("/api/auth/demo", (_req, res) => {
+    res.json(opts.demoMode ? { enabled: true, accounts: DEMO_USERS.map(u => ({ email: u.email, name: u.name, title: u.title })) } : { enabled: false, accounts: [] });
+  });
 
   app.post("/api/auth/login", loginLimit, async (req, res, next) => {
     try {
