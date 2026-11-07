@@ -9,10 +9,20 @@ import { createExtractor } from "./modules/voice/extract";
 
 /** Fails early, with a clear message, when the database is unreachable or has no Vetflow schema yet. */
 async function checkDatabase(pool: ReturnType<typeof getPool>) {
-  try {
-    await pool.query("select 1");
-  } catch (e) {
-    throw new Error(`Cannot connect to the database: ${(e as Error).message}. Check DATABASE_URL (or ADMIN_DATABASE_URL and APP_DB_PASSWORD) in .env.`, { cause: e });
+  // A hosted database can refuse the first connections for a few seconds (for example right after a password
+  // change reaches its pooler), so try again a few times before giving up.
+  const attempts = 10;
+  for (let i = 1; ; i++) {
+    try {
+      await pool.query("select 1");
+      break;
+    } catch (e) {
+      if (i >= attempts) {
+        throw new Error(`Cannot connect to the database: ${(e as Error).message}. Check DATABASE_URL (or ADMIN_DATABASE_URL and APP_DB_PASSWORD) in .env.`, { cause: e });
+      }
+      logger.warn({ attempt: i, err: (e as Error).message }, "database not reachable yet, retrying");
+      await new Promise(r => setTimeout(r, 4000));
+    }
   }
   const r = await pool.query("select to_regclass('public.stock_ledger') as t");
   if (!r.rows[0].t) throw new Error("The database has no Vetflow tables. Run `pnpm db:migrate` first.");
