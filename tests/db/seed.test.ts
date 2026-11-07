@@ -2,7 +2,7 @@ import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../../server/app";
 import { migrate } from "../../server/db/migrate";
-import { DEMO_CLINIC, DEMO_PASSWORD, DEMO_USERS, seedDemo } from "../../server/db/seed";
+import { DEMO_CLINIC, DEMO_PASSWORD, DEMO_USERS, resetDemoData, seedDemo } from "../../server/db/seed";
 import { startEmbedded, type EmbeddedDb } from "../../scripts/lib/embedded";
 import { serve } from "../helpers";
 
@@ -72,3 +72,17 @@ describe("demo seed", () => {
     await expect(seedDemo({ adminUrl: db.adminUrl, appUrl: db.appUrl })).rejects.toThrow(/already has a tenant/);
   });
 });
+
+describe("resetting the demo", () => {
+  it("clears a database that holds only the demo clinic, so it can be seeded again, and refuses any other clinic", async () => {
+    await expect(resetDemoData({ adminUrl: db.adminUrl })).resolves.toEqual({ removedTenants: 1 });
+    expect(await one("select count(*) n from tenants")).toBe(0);
+    expect(await one("select count(*) n from stock_ledger")).toBe(0);
+    await expect(seedDemo({ adminUrl: db.adminUrl, appUrl: db.appUrl })).resolves.toMatchObject({ users: DEMO_USERS.length });
+
+    await admin.query("insert into tenants (name) values ('A real clinic')");
+    await expect(resetDemoData({ adminUrl: db.adminUrl })).rejects.toThrow(/not the demo clinic/);
+    expect(await one("select count(*) n from tenants")).toBe(2);
+  }, 120_000);
+});
+

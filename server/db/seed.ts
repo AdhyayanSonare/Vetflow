@@ -259,3 +259,24 @@ export async function seedDemo(opts: SeedOptions) {
     await admin.end();
   }
 }
+
+/**
+ * Clears a database that holds only the labelled demo clinic, so the demo can be loaded again after a
+ * half-finished seed. Refuses if any clinic is not the demo clinic. Removes every row in every tenant table
+ * (TRUNCATE is not blocked by the append-only triggers, which only stop row updates and deletes).
+ */
+export async function resetDemoData(opts: { adminUrl: string; caCert?: string }): Promise<{ removedTenants: number }> {
+  const admin = new pg.Pool({ ...poolConfig(opts.adminUrl, opts.caCert), max: 1 });
+  try {
+    const tenants = (await admin.query("select id, name from tenants")).rows as Array<{ id: string; name: string }>;
+    const other = tenants.filter(t => t.name !== DEMO_CLINIC);
+    if (other.length) {
+      throw new Error(`Refusing to clear this database: it holds a clinic that is not the demo clinic (${other.map(t => `"${t.name}"`).join(", ")}).`);
+    }
+    // Only the application's own tables; pg-boss keeps its separate schema.
+    await admin.query("truncate table tenants restart identity cascade");
+    return { removedTenants: tenants.length };
+  } finally {
+    await admin.end();
+  }
+}
