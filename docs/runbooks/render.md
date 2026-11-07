@@ -1,6 +1,6 @@
 # Live demo on Render (vetflow.astraonlabs.com)
 
-One Render web service built from this repository's `Dockerfile`, talking to a hosted PostgreSQL (the Supabase project). Render provides HTTPS. About 20 minutes.
+One Render web service (**free plan**) built from this repository's `Dockerfile`, talking to a hosted PostgreSQL (the Supabase project, also free). Render provides HTTPS. About 20 minutes.
 
 **Why Supabase and not Render's own database:** Vetflow's security needs a database owner that can bypass row-level security to run migrations, and a separate restricted role for the app. The Supabase `postgres` role provides that and the schema is already verified there (`pnpm db:check`). Render's managed Postgres is not verified for this.
 
@@ -37,8 +37,17 @@ The seed refuses to run if any clinic already exists, so it cannot overwrite rea
 
 1. Open `https://vetflow.astraonlabs.com` in a private window. Enter the site password. Sign in as `dr.sharma@greenfield.demo`.
 2. Walk the ten-minute script in `docs/demo.md` once, on a phone and on a laptop.
-3. Check the instance is a paid one (no sleeping) and the health check is green.
+3. Check the pinger is green and the health check is green.
 4. Afterwards, rotate `SITE_PASSWORD` in Render, or suspend the service, so the demo is not left open.
+
+## Keeping the free instance awake
+
+A free Render service sleeps after 15 minutes with no traffic, and the first request afterwards takes about a minute. For a client call, avoid that:
+
+1. Create a free account at UptimeRobot (or cron-job.org) and add an HTTPS monitor on `https://vetflow.astraonlabs.com/api/health` every 5 minutes. That address is exempt from the site password, so the pinger needs no credentials.
+2. Free services get 750 instance hours a month, enough for one service running all month.
+3. Before a call, open the site five minutes early anyway. If it ever shows a loading page, wait a minute and refresh: it is waking up.
+4. A free instance has 512 MB of memory. This is enough for a demo with a few users.
 
 ## Notes and limits
 

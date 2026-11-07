@@ -5,9 +5,9 @@ services:
     name: vetflow
     runtime: docker
     dockerfilePath: ./Dockerfile
-    # A paid instance does not go to sleep. The free one sleeps after 15 minutes idle and takes about a minute
-    # to wake, which is the wrong thing to hit in front of a client.
-    plan: starter
+    # Free plan: no cost. The instance sleeps after 15 minutes without traffic and takes about a minute to
+    # wake, so keep it awake with a free uptime pinger on /api/health (see docs/runbooks/render.md).
+    plan: free
     region: singapore
     healthCheckPath: /api/health
     # Applies any pending database migrations (safe to repeat), then starts the app.
