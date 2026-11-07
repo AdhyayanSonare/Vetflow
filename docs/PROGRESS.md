@@ -14,7 +14,8 @@ Only things that were run are listed as working. Last updated 2026-11-07, branch
 | `pnpm audit` | 0 high or critical; 4 moderate (uuid via exceljs, not reachable; minimatch via eslint, dev only) |
 | Licence allow list | 509 packages pass; one named build-only exception, lightningcss (MPL-2.0), never in the production tree |
 | Secret scan | pass |
-| Docker image build | builds, 563 MB. **Compose stack not run**, backup and restore drill not run |
+| Docker Compose stack (throwaway config, local Docker Desktop) | pass: postgres, migrate, api, worker, proxy, backup all up; health, app and CSP headers through the proxy; `tenant-create` in the container; sign-in and API call. Found and fixed: the backup image used Alpine 3.20 which has no Postgres 17 client. Not tested: TLS/domain, the `asr` and `uptime` profiles, a real off-site restic target |
+| Backup and restore drill | pass on a near-empty database: backup 5 s, restore into a fresh database 2 s, 54 of 54 checksums match. **Timing for a real clinic-sized database is unmeasured** |
 | ASR accuracy | **not measured**: no real recordings. Harness built (`eval/asr`), scoring unit-tested |
 
 ## Security review (read-only subagent, from code only, nothing executed)
@@ -48,7 +49,7 @@ Production bundle landed in `dist/server/` so `pnpm start` and Docker could not 
 
 ## Not done
 
-Docker Compose run and restore drill; GitHub Actions run; browser flows for transfers, counts, orders, vials, import; phone/tablet runs of the new specs; offline queue; camera-scan fallback; legacy browser-data importer; return-to-store screen; email for password reset. Merge to `main` and push wait on the security items above and a final full check.
+GitHub Actions run; TLS with a real domain; off-site backup target; browser flows for transfers, counts, orders, vials, import; phone/tablet runs of the new specs; offline queue; camera-scan fallback; legacy browser-data importer; return-to-store screen; email for password reset. Merge to `main` and push wait on the security items above and a final full check.
 
 ## Needs the user
 
