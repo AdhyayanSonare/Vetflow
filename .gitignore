@@ -121,3 +121,7 @@ certs/
 # Saved end-to-end sessions and results
 e2e/.auth/
 e2e/.results/
+
+# Real consultation recordings used for the speech evaluation (private; get consent first)
+eval/asr/clips/
+eval/asr/drugs.txt

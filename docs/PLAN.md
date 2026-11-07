@@ -24,36 +24,38 @@ The single source of truth for what is done and what is left. Updated at every s
 - [x] Config module, strict TLS, pino logging, domain-module structure
 - [x] Seed (synthetic, labelled), `pnpm demo` launcher, schema signature and baseline tools
 - [x] Supabase database verified: 11 migrations recorded, 0 schema mismatches, app-role security checks pass
-- [ ] Legacy importer for the browser demo data (localStorage)
-- [ ] Tests: 143 passing. To add: legacy import, subscription invoices
+- [x] Server recovery commands: `pnpm tenant:create` (first clinic and admin) and `pnpm user:set-password` (locked-out admin), tested
+- [x] Production bundle layout (flat `dist/*.js`) guarded by `tests/unit/bundle.test.ts`
+- [ ] Legacy importer for the browser demo data (localStorage). Not started; the demo data is synthetic, so it only matters if the client used the old browser demo for real records.
+- [x] Tests: see docs/TEST-MAP.md
 
 ## Frontend (rebuild, API-backed)
 - [x] Structure: `client/src/{app,api,features,components,hooks,lib,styles}`, TanStack Query, business logic in hooks and pure modules
 - [x] Astraon tokens (CSS variables + Tailwind theme), self-hosted Source Serif 4, IBM Plex Sans and Mono, dark theme
 - [x] Shell: sidebar (desktop), icon rail (tablet), bottom tab bar with Record (phone)
 - [x] Sign-in, password reset
-- [~] Today (dashboard) done; alerts page with inventory
+- [x] Today (dashboard); alerts page with inventory
 - [x] Patients: list, register, profile
 - [x] Consultation flow: record or upload or type, transcribe, extract, review notes, prescription, approve, done (e2e at 3 sizes)
-- [ ] Prescriptions list and print view
-- [ ] Dispensing queue and counter sale (controlled-item witness)
-- [ ] Inventory: items, item detail with batches and ledger, receipts, orders, suppliers, transfers, counts, vials, adjustments, import
-- [ ] Reports (filters, CSV, Excel, print)
-- [ ] Settings: users, branches, feature flags, subscription, licences, audit
-- [ ] Barcode input (keyboard scanners always; camera scanner behind the flag)
-- [ ] Responsive at 375, 768 and 1280 px, 44 px targets, no horizontal scroll
-- [~] Playwright tests at three sizes, screenshots in `docs/qa/` (smoke + consultation done; more specs per feature)
+- [x] Prescriptions list, detail and print view (print layout checked at 3 sizes)
+- [x] Dispensing queue, counter sale, controlled-item witness (dispense flow driven end to end in `e2e/workflows.spec.ts`)
+- [~] Inventory: all screens built and loaded at 3 sizes; receipt entry and confirmation driven end to end. Orders, transfers, counts, vials and import are covered by API tests but not by browser flows.
+- [~] Reports: nine reports, filters, CSV and Excel download, print. Pages load at 3 sizes; downloads are covered by API tests, not clicked in a browser test.
+- [x] Settings: users, branches, feature flags (voice switch driven end to end), subscription, licences, audit
+- [~] Barcode input: keyboard scanners work as typing; camera scan button behind the flag uses the browser's native BarcodeDetector only (no fallback library, so unsupported browsers show typing only)
+- [x] Responsive at 375, 768 and 1280 px, 44 px targets, no horizontal scroll (checked on every page by Playwright)
+- [~] Playwright tests at three sizes, screenshots in `docs/qa/`: smoke (every page), consultation, dispensing, receipt, voice switch. Not covered: transfers, counts, orders, vials, import in the browser.
 
 ## Operations and quality
-- [ ] ESLint, licence allow-list check, secret scan, `pnpm audit` in `pnpm check`
-- [ ] Docker Compose (proxy, api, worker, asr, postgres, backup), Caddy TLS, health checks
-- [ ] Encrypted backup, restore script and a timed restore drill
-- [ ] GitHub Actions on Linux, macOS and Windows
-- [ ] Performance gates: item search p95 under 300 ms at 10,000 items, dashboard under 2 s at 500,000 ledger rows
-- [ ] ASR eval harness (`eval/asr`) and ADR for the model choice (numbers only from real clips)
-- [ ] CLAUDE.md under 150 lines, project skills, hooks
-- [ ] Docs: ARCHITECTURE, runbooks (deploy, backup, restore, incident), admin and user guide, demo guide, TEST-MAP
-- [ ] Security review by the read-only subagent; fresh-clone verification
+- [x] ESLint in `pnpm check`; licence allow list (`pnpm licences`), secret scan (`pnpm secrets`) and `pnpm audit` in CI. Audit: 0 high or critical findings, 4 moderate (dev tooling and one unreachable exceljs path). One named build-only licence exception: lightningcss (MPL-2.0).
+- [~] Docker Compose (proxy, api, worker, asr, postgres, backup), Caddy TLS, health checks: written; see PROGRESS for what was actually run
+- [~] Encrypted backup and restore scripts written (restic); a timed restore drill has not been run
+- [~] GitHub Actions workflow written for Linux, macOS and Windows; it has not run (nothing pushed yet)
+- [x] Performance gates (`pnpm perf`): item search p95 178 ms at 10,000 items; dashboard 1.14 s at 500,000 ledger rows
+- [~] ASR eval harness built and unit-tested (`eval/asr`); ADR written (`docs/adr/asr.md`). No accuracy numbers: no real recordings exist.
+- [x] CLAUDE.md (56 lines), skills (ledger-invariants, tenant-safety, vetflow-ui), hooks (block applied-migration edits, lint after edits, typecheck + fast tests on stop)
+- [x] Docs: ARCHITECTURE, runbooks (deploy, backup, restore, incident), admin and user guides, demo guide, TEST-MAP, ADRs
+- [~] Fresh-clone verification done (install, check, demo from a clean clone); security review by a read-only subagent: see PROGRESS
 - [ ] Merge into `main`; push only after everything above passes
 
 ## Needs the user

@@ -29,7 +29,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["server/**/*.ts", "scripts/**/*.ts", "tests/**/*.ts", "e2e/**/*.ts", "*.ts"],
+    files: ["server/**/*.ts", "scripts/**/*.ts", "tests/**/*.ts", "e2e/**/*.ts", "eval/**/*.ts", "*.ts"],
     languageOptions: { globals: globals.node },
   },
   {
@@ -40,7 +40,7 @@ export default tseslint.config(
   },
   {
     // Command-line scripts and the demo launcher talk to the terminal on purpose.
-    files: ["scripts/**/*.ts", "tests/**/*.ts", "e2e/**/*.ts"],
+    files: ["scripts/**/*.ts", "tests/**/*.ts", "e2e/**/*.ts", "eval/**/*.ts"],
     rules: { "no-console": "off" },
   },
 );

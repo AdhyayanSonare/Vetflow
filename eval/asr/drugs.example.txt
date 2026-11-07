@@ -1,0 +1,11 @@
+# One drug name per line. Replace with the clinic's own list (copy to drugs.txt).
+amoxicillin
+carprofen
+meloxicam
+metronidazole
+doxycycline
+prednisolone
+furosemide
+gabapentin
+ivermectin
+maropitant

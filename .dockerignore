@@ -5,3 +5,15 @@ dist
 .env.*
 .manus-logs
 *.manus-starter-*
+.demo-data
+.demo-data-e2e
+.claude
+.github
+docs
+e2e
+tests
+eval
+asr
+playwright-report
+test-results
+*.log

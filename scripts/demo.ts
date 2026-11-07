@@ -88,6 +88,7 @@ try {
   console.log("\n  Voice: " + (process.env.GROQ_API_KEY ? "transcription is on (Groq)." : "transcription is off (no GROQ_API_KEY in .env). Everything else works; type or paste a dictation to try the draft flow."));
   console.log("  Press Ctrl+C to stop.\n");
 } catch (e) {
-  console.error("\nThe demo could not start:", (e as Error).message);
+  const cause = (e as { cause?: { code?: string; message?: string } }).cause;
+  console.error("\nThe demo could not start:", (e as Error).message, cause ? `(${cause.code ?? cause.message})` : "");
   await shutdown(1);
 }

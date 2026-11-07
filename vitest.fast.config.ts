@@ -12,7 +12,7 @@ export default defineConfig({
   resolve: { alias: { "@": path.resolve(root, "client", "src"), "@shared": path.resolve(root, "shared") } },
   test: {
     environment: "node",
-    include: ["client/src/**/*.test.ts", "tests/unit/config.test.ts", "tests/unit/scripts.test.ts", "tests/unit/asr-clients.test.ts"],
+    include: ["client/src/**/*.test.ts", "tests/unit/config.test.ts", "tests/unit/scripts.test.ts", "tests/unit/asr-clients.test.ts", "tests/unit/eval-metrics.test.ts"],
     testTimeout: 30000,
   },
 });
