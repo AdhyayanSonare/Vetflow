@@ -1,10 +1,9 @@
-import { randomUUID } from "node:crypto";
 import type { Express } from "express";
 import type pg from "pg";
 import { z } from "zod";
 import { auditTx, ensureOwned, HttpError, route } from "../../http/route";
 import { uuid, qty, reasonText } from "../../http/schemas";
-import { postMovement, issueFefo } from "../stock/ledger";
+import { postMovement, issueFefo, clientIdempotencyKey } from "../stock/ledger";
 
 export function registerStockOperationRoutes(app: Express, pool: pg.Pool) {
   // Departments ----------------------------------------------------------------------
@@ -24,9 +23,11 @@ export function registerStockOperationRoutes(app: Express, pool: pg.Pool) {
     await ensureOwned(c, "items", [b.itemId]);
     await ensureOwned(c, "stores", [b.storeId]);
     await ensureOwned(c, "departments", [b.departmentId]);
+    const ctl = (await c.query("select controlled from items where id = $1", [b.itemId])).rows[0];
+    if (ctl?.controlled) throw new HttpError(409, "controlled_item", "Controlled medicines are only taken out through a dispense, which needs a second person to confirm.");
     const plan = await issueFefo(c, {
       tenantId: user.tenantId, type: "issue", itemId: b.itemId, storeId: b.storeId, quantity: b.quantity, userId: user.userId,
-      reason: b.reason, reference: b.departmentId ? `dept:${b.departmentId}` : "issue", idempotencyKey: String(req.get("idempotency-key") ?? randomUUID()),
+      reason: b.reason, reference: b.departmentId ? `dept:${b.departmentId}` : "issue", idempotencyKey: clientIdempotencyKey(user.userId, req.get("idempotency-key")),
     });
     await auditTx(c, user, "stock.issue", "item", b.itemId, { quantity: b.quantity, departmentId: b.departmentId }, b.reason);
     return { allocations: plan };
@@ -41,7 +42,7 @@ export function registerStockOperationRoutes(app: Express, pool: pg.Pool) {
     const id = await postMovement(c, {
       tenantId: user.tenantId, type: "return_to_store", itemId: b.itemId, batchId: b.batchId, quantity: b.quantity,
       fromStoreId: b.fromStoreId, toStoreId: b.toStoreId, userId: user.userId, reason: b.reason, reference: "return",
-      idempotencyKey: String(req.get("idempotency-key") ?? randomUUID()),
+      idempotencyKey: clientIdempotencyKey(user.userId, req.get("idempotency-key")),
     });
     return { ledgerId: id };
   }, 201));

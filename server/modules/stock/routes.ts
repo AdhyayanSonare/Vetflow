@@ -1,10 +1,9 @@
-import { randomUUID } from "node:crypto";
 import type { Express } from "express";
 import type pg from "pg";
 import { z } from "zod";
 import { auditTx, ensureOwned, HttpError, route } from "../../http/route";
 import { uuid, qtyNum } from "../../http/schemas";
-import { postMovement, suggestFefo } from "../stock/ledger";
+import { postMovement, suggestFefo, clientIdempotencyKey } from "../stock/ledger";
 
 export function registerStockRoutes(app: Express, pool: pg.Pool) {
   // Branches and stores ------------------------------------------------------
@@ -70,7 +69,7 @@ export function registerStockRoutes(app: Express, pool: pg.Pool) {
     const id = await postMovement(c, {
       tenantId: user.tenantId, type: b.type, itemId: b.itemId, batchId: b.batchId, quantity: b.quantity,
       fromStoreId: adding ? null : b.storeId, toStoreId: adding ? b.storeId : null, userId: user.userId,
-      reason: b.reason, reference: `adjust:${b.type}`, idempotencyKey: String(req.get("idempotency-key") ?? randomUUID()),
+      reason: b.reason, reference: `adjust:${b.type}`, idempotencyKey: clientIdempotencyKey(user.userId, req.get("idempotency-key")),
       override: b.override,
     });
     await auditTx(c, user, `stock.${b.type}`, "stock_ledger", id, { itemId: b.itemId, batchId: b.batchId, quantity: b.quantity }, b.reason);

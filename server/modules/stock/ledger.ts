@@ -153,3 +153,11 @@ export async function transferStock(
 export async function reconcile(c: pg.PoolClient, tenantId: string) {
   return (await c.query("select * from reconcile_balances($1)", [tenantId])).rows;
 }
+
+/**
+ * A key chosen by a client is namespaced per user so it can never equal a system key such as
+ * `dispense:<id>:<item>` or `receipt:<line>`, and is capped in length. A client that sends none gets a fresh one.
+ */
+export function clientIdempotencyKey(userId: string, header: string | undefined): string {
+  return header ? `client:${userId}:${header.slice(0, 100)}` : `client:${userId}:${crypto.randomUUID()}`;
+}
