@@ -1,0 +1,35 @@
+# Render Blueprint for the live demo at https://vetflow.astraonlabs.com
+# Render: New > Blueprint > pick this repository. Fill in the four secrets when asked. See docs/runbooks/render.md.
+services:
+  - type: web
+    name: vetflow
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    # A paid instance does not go to sleep. The free one sleeps after 15 minutes idle and takes about a minute
+    # to wake, which is the wrong thing to hit in front of a client.
+    plan: starter
+    region: singapore
+    healthCheckPath: /api/health
+    # Applies any pending database migrations (safe to repeat), then starts the app.
+    dockerCommand: sh -c "node dist/db-migrate.js && node dist/index.js"
+    domains:
+      - vetflow.astraonlabs.com
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: LOG_LEVEL
+        value: info
+      # The owner connection string of the database, for migrations and the app-role URL. Secret: you enter it in Render.
+      - key: ADMIN_DATABASE_URL
+        sync: false
+      # Password of the restricted vetflow_app database role. Secret.
+      - key: APP_DB_PASSWORD
+        sync: false
+      # One shared password in front of the whole site, so the public demo accounts are not open to the internet. Secret.
+      - key: SITE_PASSWORD
+        sync: false
+      # Optional: hosted speech to text and note drafting. Leave empty to demo with typed dictation.
+      - key: GROQ_API_KEY
+        sync: false
