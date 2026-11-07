@@ -22,6 +22,7 @@
     "db:baseline": "tsx scripts/db-baseline.ts",
     "db:seed": "tsx scripts/db-seed.ts",
     "db:reset-demo": "tsx scripts/db-reset-demo.ts",
+    "db:reload-demo": "tsx scripts/db-reload-demo.ts",
     "db:check": "tsx scripts/db-check.ts",
     "tenant:create": "tsx scripts/tenant-create.ts",
     "user:set-password": "tsx scripts/user-set-password.ts",

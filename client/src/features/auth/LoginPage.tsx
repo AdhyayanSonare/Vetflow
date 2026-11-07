@@ -21,14 +21,14 @@ type Values = z.infer<typeof schema>;
 
 type DemoInfo = { enabled: boolean; accounts: Array<{ email: string; name: string; title: string }> };
 
-/** Only shown on a public demo (DEMO_MODE): one click signs in as an invented person. */
+/** Only shown on a public showcase (DEMO_MODE): one click signs in as a team member. */
 function DemoAccounts({ onPick, busy }: { onPick: (email: string) => void; busy: string | null }) {
   const demo = useQuery({ queryKey: ["demo-accounts"], queryFn: () => api.get<DemoInfo>("/api/auth/demo"), staleTime: Infinity });
   if (!demo.data?.enabled) return null;
   return (
     <section aria-label="Demo accounts" className="mb-4 rounded-xl border border-border bg-card p-5 md:p-6">
-      <h2 className="text-lg">Try the demo</h2>
-      <p className="mb-3 text-sm text-muted-foreground">Everything here is invented. Pick who you want to be.</p>
+      <h2 className="text-lg">Sign in as</h2>
+      <p className="mb-3 text-sm text-muted-foreground">Pick a team member to look around.</p>
       <ul className="space-y-2">
         {demo.data.accounts.map(a => (
           <li key={a.email}>

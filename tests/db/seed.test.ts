@@ -24,9 +24,9 @@ afterAll(async () => { await app?.end(); await admin?.end(); await db?.stop(); }
 const one = async (sql: string) => Number((await admin.query(sql)).rows[0].n);
 
 describe("demo seed", () => {
-  it("creates a clearly labelled synthetic clinic with branches, stores and every role", async () => {
+  it("creates the invented clinic with branches, stores and every role", async () => {
     expect((await admin.query("select name from tenants")).rows[0].name).toBe(DEMO_CLINIC);
-    expect(DEMO_CLINIC).toMatch(/demo data/);
+    expect(DEMO_CLINIC).toBe("Greenfield Veterinary Group");
     expect(await one("select count(*) n from branches")).toBe(2);
     expect(await one("select count(*) n from stores where kind in ('central','branch')")).toBe(3);
     expect((await admin.query("select distinct role from users order by 1")).rows.map(r => r.role)).toEqual(["admin", "inventory_manager", "pharmacist", "vet", "viewer"]);

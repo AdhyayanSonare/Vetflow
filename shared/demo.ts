@@ -3,7 +3,9 @@
  * one list of accounts. All of it is invented. Do not use this password anywhere real.
  */
 export const DEMO_PASSWORD = "Vetflow-demo-2026";
-export const DEMO_CLINIC = "Greenfield Veterinary Group (demo data)";
+export const DEMO_CLINIC = "Greenfield Veterinary Group";
+/** The name earlier seeds used. Still recognised when clearing a half-loaded demo database. */
+export const LEGACY_DEMO_CLINICS = ["Greenfield Veterinary Group (demo data)"];
 
 export const DEMO_USERS = [
   { email: "admin@greenfield.demo", name: "Anita Verma", role: "admin", title: "Group administrator" },

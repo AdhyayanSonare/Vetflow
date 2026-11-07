@@ -1,6 +1,6 @@
 # Demo guide
 
-The demo clinic is **Greenfield Veterinary Group (demo data)**: two branches, three stores, forty catalogue items, eight patients and six staff accounts. Everything in it is invented, including the phone numbers and the supplier details.
+The demo clinic is **Greenfield Veterinary Group**: two branches, three stores, forty catalogue items, eight patients and six staff accounts. Everything in it is invented, including the phone numbers and the supplier details.
 
 ## Starting it
 

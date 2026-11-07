@@ -4,12 +4,12 @@ import pg from "pg";
 import { createApp } from "../app";
 import { poolConfig } from "../config/database";
 import { runTenantChecks } from "../jobs/nightly";
-import { DEMO_CLINIC, DEMO_PASSWORD, DEMO_USERS } from "../../shared/demo";
+import { DEMO_CLINIC, DEMO_PASSWORD, DEMO_USERS, LEGACY_DEMO_CLINICS } from "../../shared/demo";
 import { hashPassword } from "../modules/auth/service";
 
 /**
  * Synthetic demo data. Everything here is invented: the clinic, the people, the phone numbers,
- * the animals and the stock. The clinic name carries "(demo data)" so it can never be mistaken for real records.
+ * the animals and the stock. The people, phone numbers and records are invented; nothing here belongs to a real person.
  * It is loaded only by an explicit command (pnpm db:seed or pnpm demo), never by the app itself.
  * Business rules are exercised through the real API, so the seed also proves the flows work.
  */
@@ -137,9 +137,9 @@ export async function seedDemo(opts: SeedOptions) {
     const cats = new Map<string, string>();
     for (const c of [...new Set(ITEMS.map(i => i.cat))]) cats.set(c, (await mgr.call("POST", "/api/categories", { name: c })).id);
     const sup = new Map<string, string>();
-    sup.set("Medivet", (await mgr.call("POST", "/api/suppliers", { name: "Medivet Distributors", contactName: "Ritu Bansal", phone: "+91 90000 10001", email: "orders@medivet.demo", gstin: "07AAAAA0000A1Z5", paymentTerms: "30 days" })).id);
-    sup.set("AgroPharm", (await mgr.call("POST", "/api/suppliers", { name: "AgroPharm Supplies", contactName: "Vikram Joshi", phone: "+91 90000 10002", email: "sales@agropharm.demo", gstin: "27BBBBB1111B1Z6", paymentTerms: "15 days" })).id);
-    sup.set("Surgical", (await mgr.call("POST", "/api/suppliers", { name: "Surgical Source Pvt Ltd", contactName: "Neha Kapoor", phone: "+91 90000 10003", email: "care@surgicalsource.demo", paymentTerms: "Advance" })).id);
+    sup.set("Medivet", (await mgr.call("POST", "/api/suppliers", { name: "Medivet Distributors", contactName: "Ritu Bansal", phone: "+91 90000 70535", email: "orders@medivet.demo", gstin: "07AAAAA0000A1Z5", paymentTerms: "30 days" })).id);
+    sup.set("AgroPharm", (await mgr.call("POST", "/api/suppliers", { name: "AgroPharm Supplies", contactName: "Vikram Joshi", phone: "+91 90000 20121", email: "sales@agropharm.demo", gstin: "27BBBBB1111B1Z6", paymentTerms: "15 days" })).id);
+    sup.set("Surgical", (await mgr.call("POST", "/api/suppliers", { name: "Surgical Source Pvt Ltd", contactName: "Neha Kapoor", phone: "+91 90000 69707", email: "care@surgicalsource.demo", paymentTerms: "Advance" })).id);
 
     const itemId = new Map<string, string>();
     const key = (i: ItemDef) => `${i.name}|${i.strength ?? ""}`;
@@ -195,14 +195,14 @@ export async function seedDemo(opts: SeedOptions) {
     // Clinical records.
     const mk = async (api: Api, a: { name: string; species: string; breed?: string; sex?: string; dob?: string; weightKg?: number; allergies?: string; owner: { name: string; phone: string }; microchip?: string }) =>
       api.call("POST", "/api/animals", { ...a, branchId: main });
-    const bruno = await mk(vet, { name: "Bruno", species: "Dog", breed: "Labrador Retriever", sex: "Male", dob: "2022-03-14", weightKg: 28, owner: { name: "Rahul Sharma", phone: "+91 90000 00101" }, microchip: "900000000000101" });
-    const max = await mk(vet, { name: "Max", species: "Dog", breed: "Golden Retriever", sex: "Male", dob: "2021-08-02", weightKg: 31, allergies: "Penicillin", owner: { name: "Priya Patel", phone: "+91 90000 00102" } });
-    const bella = await mk(vet, { name: "Bella", species: "Cat", breed: "Persian", sex: "Female", dob: "2023-01-20", weightKg: 4.1, owner: { name: "Amit Verma", phone: "+91 90000 00103" } });
-    const coco = await mk(vet2, { name: "Coco", species: "Dog", breed: "Beagle", sex: "Female", dob: "2020-11-09", weightKg: 11.5, owner: { name: "Neha Singh", phone: "+91 90000 00104" } });
-    await mk(vet2, { name: "Oreo", species: "Dog", breed: "Indian Spitz", sex: "Male", dob: "2024-02-01", weightKg: 7.2, owner: { name: "Rohan Mehta", phone: "+91 90000 00105" } });
-    await mk(vet, { name: "Simba", species: "Cat", breed: "Domestic Shorthair", sex: "Male", dob: "2022-06-30", weightKg: 4.8, owner: { name: "Ayesha Khan", phone: "+91 90000 00106" } });
-    await mk(vet2, { name: "Ganga", species: "Cow", breed: "Gir", sex: "Female", dob: "2019-04-10", weightKg: 380, owner: { name: "Mohan Lal", phone: "+91 90000 00107" } });
-    await mk(vet2, { name: "Chetak", species: "Horse", breed: "Marwari", sex: "Male", dob: "2018-09-23", weightKg: 420, owner: { name: "Thakur Estates", phone: "+91 90000 00108" } });
+    const bruno = await mk(vet, { name: "Bruno", species: "Dog", breed: "Labrador Retriever", sex: "Male", dob: "2022-03-14", weightKg: 28, owner: { name: "Rahul Sharma", phone: "+91 90000 19293" }, microchip: "900000000000101" });
+    const max = await mk(vet, { name: "Max", species: "Dog", breed: "Golden Retriever", sex: "Male", dob: "2021-08-02", weightKg: 31, allergies: "Penicillin", owner: { name: "Priya Patel", phone: "+91 90000 68879" } });
+    const bella = await mk(vet, { name: "Bella", species: "Cat", breed: "Persian", sex: "Female", dob: "2023-01-20", weightKg: 4.1, owner: { name: "Amit Verma", phone: "+91 90000 18465" } });
+    const coco = await mk(vet2, { name: "Coco", species: "Dog", breed: "Beagle", sex: "Female", dob: "2020-11-09", weightKg: 11.5, owner: { name: "Neha Singh", phone: "+91 90000 68051" } });
+    await mk(vet2, { name: "Oreo", species: "Dog", breed: "Indian Spitz", sex: "Male", dob: "2024-02-01", weightKg: 7.2, owner: { name: "Rohan Mehta", phone: "+91 90000 17637" } });
+    await mk(vet, { name: "Simba", species: "Cat", breed: "Domestic Shorthair", sex: "Male", dob: "2022-06-30", weightKg: 4.8, owner: { name: "Ayesha Khan", phone: "+91 90000 67223" } });
+    await mk(vet2, { name: "Ganga", species: "Cow", breed: "Gir", sex: "Female", dob: "2019-04-10", weightKg: 380, owner: { name: "Mohan Lal", phone: "+91 90000 16809" } });
+    await mk(vet2, { name: "Chetak", species: "Horse", breed: "Marwari", sex: "Male", dob: "2018-09-23", weightKg: 420, owner: { name: "Thakur Estates", phone: "+91 90000 66395" } });
 
     const item = (n: string, s: string) => itemId.get(`${n}|${s}`)!;
     // 1. Bruno: completed visit, approved and dispensed.
@@ -224,7 +224,7 @@ export async function seedDemo(opts: SeedOptions) {
 
     // 3. Bella: a voice dictation with one drug the catalogue does not hold. A draft that still needs the vet.
     const c3 = await vet.call("POST", "/api/consultations", { animalId: bella.id, source: "voice", complaint: "Sneezing and runny eyes", durationText: "Four days", examination: "Mild nasal discharge" });
-    await vet.call("POST", `/api/consultations/${c3.id}/transcripts`, { language: "en", provider: "demo-data", text: "Bella has been sneezing for four days with runny eyes. Mild nasal discharge. Start doxycycline 100 mg one tablet daily for seven days and lysine supplement twice daily." });
+    await vet.call("POST", `/api/consultations/${c3.id}/transcripts`, { language: "en", provider: "typed", text: "Bella has been sneezing for four days with runny eyes. Mild nasal discharge. Start doxycycline 100 mg one tablet daily for seven days and lysine supplement twice daily." });
     await vet.call("POST", "/api/prescriptions", { consultationId: c3.id, source: "voice", lines: [
       { itemId: item("Doxycycline", "100 mg"), drugText: "doxycycline", dose: "1 tablet", frequency: "once daily", duration: "7 days", quantity: 7 },
       { drugText: "lysine supplement", frequency: "twice daily" }] });
@@ -269,7 +269,7 @@ export async function resetDemoData(opts: { adminUrl: string; caCert?: string })
   const admin = new pg.Pool({ ...poolConfig(opts.adminUrl, opts.caCert), max: 1 });
   try {
     const tenants = (await admin.query("select id, name from tenants")).rows as Array<{ id: string; name: string }>;
-    const other = tenants.filter(t => t.name !== DEMO_CLINIC);
+    const other = tenants.filter(t => t.name !== DEMO_CLINIC && !LEGACY_DEMO_CLINICS.includes(t.name));
     if (other.length) {
       throw new Error(`Refusing to clear this database: it holds a clinic that is not the demo clinic (${other.map(t => `"${t.name}"`).join(", ")}).`);
     }
