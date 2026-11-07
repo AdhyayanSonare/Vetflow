@@ -33,6 +33,6 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 300_000,
     stdout: "ignore",
-    env: { PORT: String(PORT), DEMO_PG_PORT: "54399", DEMO_DATA_DIR: ".demo-data-e2e", LOG_LEVEL: "error" },
+    env: { PORT: String(PORT), DEMO_PG_PORT: String(process.env.E2E_PG_PORT || 54399), DEMO_DATA_DIR: process.env.E2E_DATA_DIR || ".demo-data-e2e", LOG_LEVEL: "error" },
   },
 });

@@ -8,9 +8,9 @@ const listeners = new Set<() => void>();
 const read = (): ThemeChoice => {
   try {
     const v = localStorage.getItem(KEY);
-    return v === "light" || v === "dark" || v === "system" ? v : "system";
+    return v === "light" || v === "dark" || v === "system" ? v : "dark";
   } catch {
-    return "system";
+    return "dark";
   }
 };
 const prefersDark = () => typeof matchMedia !== "undefined" && matchMedia("(prefers-color-scheme: dark)").matches;

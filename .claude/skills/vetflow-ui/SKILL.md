@@ -9,8 +9,10 @@ Vets and pharmacists use this on phones in a busy clinic and on desks. It must b
 
 ## Brand
 
+The look follows astraonlabs.com: dark near-black surfaces (`#05090c`), mint accent (`#3ce3a8`), pill-shaped buttons, rounded cards, soft hairline borders. Dark is the default theme; light is a quiet companion.
+
 - Tokens live in `client/src/styles/index.css` as CSS variables, mapped in `@theme inline`. Use semantic Tailwind classes (`bg-background`, `text-muted-foreground`, `border-border`, `text-danger`, `bg-danger-tint`, `text-primary`). **No hard-coded hex values** in components.
-- Fonts: Source Serif 4 for headings, IBM Plex Sans for text, IBM Plex Mono for numbers and codes (use the `num` class so figures align). Self-hosted through `@fontsource`; no CDN.
+- Fonts: Bricolage Grotesque for headings, Geist for text, Geist Mono for numbers and codes (use the `num` class so figures align). Self-hosted through `@fontsource-variable`; no CDN. These match astraonlabs.com.
 - The wordmark is text only (`app/layout/Wordmark.tsx`). No logos, no illustrations, no emoji in the UI.
 - Voice: **sentence case**, plain words, say what will happen ("Dispense 2 packs") not "Submit". Errors say what went wrong and what to do next.
 - Dates in India time (`dateIST`, `dateTimeIST` in `lib/format.ts`); money from paise (`money`, `rupeesText`).

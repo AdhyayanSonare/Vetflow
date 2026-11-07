@@ -24,7 +24,7 @@ describe("licence allow list", () => {
     expect(findProblems({ "MPL-2.0": pkg("some-other-tool") }, {})).toHaveLength(1);
   });
   it("allows the Open Font Licence only for the three brand typefaces", () => {
-    expect(findProblems({ "OFL-1.1": [{ name: "@fontsource/ibm-plex-sans", versions: ["5"] }] })).toEqual([]);
+    expect(findProblems({ "OFL-1.1": [{ name: "@fontsource-variable/geist", versions: ["5"] }] })).toEqual([]);
     expect(findProblems({ "OFL-1.1": [{ name: "some-other-font", versions: ["1"] }] })).toHaveLength(1);
   });
 });

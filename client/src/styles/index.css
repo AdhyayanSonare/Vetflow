@@ -1,60 +1,59 @@
-/* Fonts are bundled with the app (no CDN), so it works offline and under the strict CSP. */
-@import "@fontsource-variable/source-serif-4/index.css";
-@import "@fontsource/ibm-plex-sans/400.css";
-@import "@fontsource/ibm-plex-sans/500.css";
-@import "@fontsource/ibm-plex-sans/600.css";
-@import "@fontsource/ibm-plex-mono/400.css";
-@import "@fontsource/ibm-plex-mono/500.css";
+/* Fonts are bundled with the app (no CDN), so it works offline and under the strict CSP.
+   Bricolage Grotesque for headings, Geist for text and Geist Mono for figures: the same faces as astraonlabs.com. */
+@import "@fontsource-variable/bricolage-grotesque/index.css";
+@import "@fontsource-variable/geist/index.css";
+@import "@fontsource-variable/geist-mono/index.css";
 @import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
 /* ---- Astraon design tokens. Defined once here; Tailwind reads them through @theme below. ---- */
+/* Light is a quiet companion to the dark brand look. Dark (the default) matches astraonlabs.com. */
 :root {
-  --surface: #f7f5f0;
+  --surface: #f4f8f7;
   --raised: #ffffff;
-  --tint: #e6ecf4;
-  --ink: #101b2c;
-  --muted-ink: #545f70;
-  --brand: #1b3a6b;
+  --tint: #e6f1ee;
+  --ink: #0a1115;
+  --muted-ink: #4b5d63;
+  --brand: #087a59;
   --brand-ink: #ffffff;
-  --accent: #e3a03a;          /* marks and rules only */
-  --accent-ink: #8a5300;      /* amber used as text */
-  --hairline: #d8dee6;
+  --accent: #3ce3a8;
+  --accent-ink: #087a59;
+  --hairline: #d3e0dd;
 
-  --ok: #17663a;
-  --ok-tint: #e3f3ea;
+  --ok: #087a59;
+  --ok-tint: #dcf3ea;
   --warn: #8a5300;
   --warn-tint: #fbf0dc;
   --danger: #b42318;
   --danger-tint: #fde8e6;
   --recording: #c2410c;
 
-  --radius: 8px;
+  --radius: 12px;
   --tap: 44px;
   --nav-h: 64px;
   color-scheme: light;
 }
 
 .dark {
-  --surface: #0b1421;
-  --raised: #122033;
-  --tint: #1a2b44;
-  --ink: #edf1f6;
-  --muted-ink: #a0acbf;
-  --brand: #8db0ea;
-  --brand-ink: #0b1421;
-  --accent: #e3a03a;
-  --accent-ink: #f0be72;
-  --hairline: #26374f;
+  --surface: #05090c;
+  --raised: #0a1115;
+  --tint: #111b20;
+  --ink: #eaf2f1;
+  --muted-ink: #a6b8bd;
+  --brand: #3ce3a8;
+  --brand-ink: #05090c;
+  --accent: #3ce3a8;
+  --accent-ink: #3ce3a8;
+  --hairline: #1a262b;
 
-  --ok: #6ccb93;
-  --ok-tint: #12362a;
+  --ok: #3ce3a8;
+  --ok-tint: #0d2b22;
   --warn: #f0be72;
-  --warn-tint: #3a2a0f;
+  --warn-tint: #2d220d;
   --danger: #f2766b;
-  --danger-tint: #3b1a17;
+  --danger-tint: #33171a;
   --recording: #fb923c;
   color-scheme: dark;
 }
@@ -95,9 +94,9 @@
   --color-danger-tint: var(--danger-tint);
   --color-recording: var(--recording);
 
-  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-serif: "Source Serif 4 Variable", "Source Serif 4", Georgia, "Times New Roman", serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-serif: "Bricolage Grotesque Variable", "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -116,7 +115,7 @@
     font-size: 15px;
     line-height: 1.5;
   }
-  h1, h2, h3, .font-heading { font-family: var(--font-serif); font-weight: 600; letter-spacing: -0.01em; line-height: 1.2; }
+  h1, h2, h3, .font-heading { font-family: var(--font-serif); font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
   h1 { font-size: 1.5rem; }
   h2 { font-size: 1.125rem; }
   h3 { font-size: 1rem; }
@@ -125,6 +124,8 @@
   input, select, textarea { font-size: 16px; }
   button:not(:disabled), [role="button"]:not([aria-disabled="true"]) { cursor: pointer; }
   :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+  /* A faint mint glow in the corner, as on astraonlabs.com. Dark theme only. */
+  .dark body { background-image: radial-gradient(60rem 36rem at 100% -10%, rgba(60,227,168,0.07), transparent 60%); background-attachment: fixed; }
   ::selection { background: color-mix(in srgb, var(--brand) 25%, transparent); }
 }
 

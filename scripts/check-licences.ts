@@ -12,9 +12,9 @@ export const ALLOWED = new Set([
 ]);
 /** Packages allowed by name and exact licence. The fonts are required by the brand brief. */
 export const BY_NAME: Record<string, string> = {
-  "@fontsource-variable/source-serif-4": "OFL-1.1",
-  "@fontsource/ibm-plex-sans": "OFL-1.1",
-  "@fontsource/ibm-plex-mono": "OFL-1.1",
+  "@fontsource-variable/bricolage-grotesque": "OFL-1.1",
+  "@fontsource-variable/geist": "OFL-1.1",
+  "@fontsource-variable/geist-mono": "OFL-1.1",
 };
 /**
  * Build-time tools whose licence is outside the list. Each is allowed only while it is absent from the

@@ -125,3 +125,6 @@ e2e/.results/
 # Real consultation recordings used for the speech evaluation (private; get consent first)
 eval/asr/clips/
 eval/asr/drugs.txt
+
+# Local scratch data folders used by demo and browser-test runs
+.demo-data-*/
