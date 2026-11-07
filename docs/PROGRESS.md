@@ -26,15 +26,17 @@ Fixed in this branch:
 - MEDIUM: client Idempotency-Key shared a namespace with system keys (could cancel out a dispense or receipt). Client keys are now `client:<user>:<key>`, capped at 100 characters.
 - HIGH (partly): controlled medicines could be issued with no second person. Plain issue is now refused for controlled items.
 
-Open, in order of importance:
-1. HIGH: the same witness rule is still missing on return, vial open/draw and transfers for controlled items.
-2. MEDIUM: SECURITY DEFINER functions (`auth_lookup` returns password hashes) are executable by PUBLIC. Harmless on the Compose database, **exposed on Supabase if its Data API is on**. Needs a migration revoking PUBLIC; check with `has_function_privilege('anon','auth_lookup(text)','execute')`.
-3. MEDIUM: config fails open: NODE_ENV defaults to development (no CSP, insecure cookies); COOKIE_SECURE=false accepted silently in production; `pnpm demo` binds all interfaces with a public password; `db:seed` would load the public-password admin on a fresh production database.
-4. MEDIUM: lockout returns 423 vs 401 (account-existence oracle and lock-out DoS); no per-IP cap on sign-in; email not trimmed in limiter key.
-5. MEDIUM: over-dispensing race (two parallel confirms) and uncapped lines with no quantity; a receipt can reprice an existing batch; the app role can insert ledger rows directly; anonymous large-body buffering; a crafted .xlsx can exhaust memory.
-6. LOW: CI permissions and pinned images, backup passes the DB password on the command line and runs as root, no self-service password change, audit gaps on return, and others listed in the review.
+Also fixed (migration 0012, `db:seed`, start-up warnings):
+- PUBLIC can no longer execute the lookup and stock functions; only `vetflow_app` can. The app role can no longer insert ledger rows or touch `schema_migrations`. **Still check on Supabase** with `has_function_privilege('anon','auth_lookup(text)','execute')` after running `pnpm db:migrate`.
+- `pnpm db:seed` refuses a non-local database without `--allow-remote`. Starting in production with insecure cookies, or without NODE_ENV, logs a warning. (Not fixed: `pnpm demo` still listens on all interfaces on purpose, so phones on the same Wi-Fi can reach it; it uses a public password, so never run it on an untrusted network.)
 
-Do not call the system production-hardened until items 1-3 are done.
+Open, in order of importance:
+1. HIGH: the witness rule is still missing on return, vial open/draw and transfers for controlled items.
+2. MEDIUM: lockout returns 423 vs 401 (account-existence oracle and lock-out DoS); no per-IP cap on sign-in; email not trimmed in limiter key.
+3. MEDIUM: over-dispensing race (two parallel confirms) and uncapped lines with no quantity; a receipt can reprice an existing batch; anonymous large-body buffering; a crafted .xlsx can exhaust memory.
+4. LOW: CI permissions and pinned images, backup passes the DB password on the command line and runs as root, no self-service password change, audit gaps on return, and others in the review.
+
+Do not call the system production-hardened until item 1 is done.
 
 ## Built and verified
 

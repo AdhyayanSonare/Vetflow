@@ -22,6 +22,12 @@ async function checkDatabase(pool: ReturnType<typeof getPool>) {
 export async function startServer(config: Config = getConfig()) {
   const pool = getPool();
   await checkDatabase(pool);
+  if (config.isProduction && !config.cookieSecure) {
+    logger.warn("COOKIE_SECURE is off in production: sign-in cookies travel without HTTPS protection. Only acceptable for a local demo or behind a TLS proxy you control.");
+  }
+  if (!process.env.NODE_ENV) {
+    logger.warn("NODE_ENV is not set, so this is running in development mode (no CSP header, insecure cookies). Set NODE_ENV=production for a real deployment.");
+  }
 
   const app = createApp(pool, {
     production: config.isProduction,
