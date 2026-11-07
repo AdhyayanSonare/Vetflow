@@ -22,7 +22,7 @@ test("a pharmacist dispenses an approved prescription and the stock goes down", 
     await page.goto("/dispensing");
     await expect(page.getByRole("heading", { name: "Dispensing" })).toBeVisible();
     await expectNoHorizontalScroll(page, "dispensing");
-    await page.getByText(animalName).first().click();
+    await page.getByText(animalName).locator("visible=true").first().click();
 
     const dialog = page.getByRole("dialog");
     await expect(dialog).toContainText(`Dispense for ${animalName}`);

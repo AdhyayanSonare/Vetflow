@@ -7,7 +7,7 @@ Only things that were run are listed as working. Last updated 2026-11-07, branch
 | Gate | Result |
 |---|---|
 | `pnpm check` (types, lint, tests) | pass: 28 test files, 231 tests against a real PostgreSQL |
-| Browser tests, phone 375 / tablet 768 / desktop 1280 | 92 pass on all three sizes. The newer workflow specs (dispense, receipt, voice switch) pass on desktop only |
+| Browser tests, phone 375 / tablet 768 / desktop 1280 | 101 of 101 pass (full run: 100 passed, then the one phone failure was a test selector bug picking a hidden duplicate; fixed and the workflow specs re-run green at all three sizes). Not covered in a browser: transfers, counts, orders, vials, import |
 | Fresh clone (clean `git clone`, install from lockfile, `pnpm check`, `pnpm demo`) | pass at a short path: install 5 s, check 114 s, demo healthy 21 s |
 | Item search, 10,000 items | p50 114 ms, **p95 178 ms** (gate 300 ms), through the real API with row-level security |
 | Dashboard, 500,000 ledger rows | median 1.14 s, max 1.17 s (gate 2 s). Margin is thin: it scans the ledger, so about 1M rows would breach |
