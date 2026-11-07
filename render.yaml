@@ -11,7 +11,7 @@ services:
     region: singapore
     healthCheckPath: /api/health
     # Applies any pending database migrations (safe to repeat), then starts the app.
-    dockerCommand: sh -c "node dist/db-migrate.js && node dist/index.js"
+    dockerCommand: sh /app/deploy/render-start.sh
     domains:
       - vetflow.astraonlabs.com
     envVars:

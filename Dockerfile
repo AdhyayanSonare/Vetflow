@@ -24,6 +24,7 @@ COPY --from=build /app/dist ./dist
 COPY db ./db
 COPY certs ./certs
 COPY package.json ./
+COPY deploy/render-start.sh ./deploy/render-start.sh
 USER vetflow
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
