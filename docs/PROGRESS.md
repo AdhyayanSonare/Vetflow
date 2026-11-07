@@ -31,7 +31,7 @@ Also fixed (migration 0012, `db:seed`, start-up warnings):
 - `pnpm db:seed` refuses a non-local database without `--allow-remote`. Starting in production with insecure cookies, or without NODE_ENV, logs a warning. (Not fixed: `pnpm demo` still listens on all interfaces on purpose, so phones on the same Wi-Fi can reach it; it uses a public password, so never run it on an untrusted network.)
 
 Open, in order of importance:
-1. HIGH: the witness rule is still missing on return, vial open/draw and transfers for controlled items.
+1. HIGH (narrowed): plain issue and return now refuse controlled items. Still missing a second-person step: opening a controlled multi-dose vial (kept allowed because the demo and real practice use ketamine vials, so it needs a witness field, not a block) and transfers of controlled stock.
 2. MEDIUM: lockout returns 423 vs 401 (account-existence oracle and lock-out DoS); no per-IP cap on sign-in; email not trimmed in limiter key.
 3. MEDIUM: over-dispensing race (two parallel confirms) and uncapped lines with no quantity; a receipt can reprice an existing batch; anonymous large-body buffering; a crafted .xlsx can exhaust memory.
 4. LOW: CI permissions and pinned images, backup passes the DB password on the command line and runs as root, no self-service password change, audit gaps on return, and others in the review.

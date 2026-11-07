@@ -39,6 +39,7 @@ export function registerStockOperationRoutes(app: Express, pool: pg.Pool) {
     await ensureOwned(c, "items", [b.itemId]);
     await ensureOwned(c, "batches", [b.batchId]);
     await ensureOwned(c, "stores", [b.fromStoreId, b.toStoreId]);
+    if ((await c.query("select controlled from items where id = $1", [b.itemId])).rows[0]?.controlled) throw new HttpError(409, "controlled_item", "Controlled medicines are only moved through a dispense, which needs a second person to confirm.");
     const id = await postMovement(c, {
       tenantId: user.tenantId, type: "return_to_store", itemId: b.itemId, batchId: b.batchId, quantity: b.quantity,
       fromStoreId: b.fromStoreId, toStoreId: b.toStoreId, userId: user.userId, reason: b.reason, reference: "return",
