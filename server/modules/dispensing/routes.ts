@@ -4,22 +4,9 @@ import { z } from "zod";
 import { auditTx, ensureOwned, HttpError, notFound, route } from "../../http/route";
 import { uuid } from "../../http/schemas";
 import { issueFefo } from "../stock/ledger";
-import { verifyPassword } from "../auth/service";
+import { requireWitness } from "./witness";
 import { can } from "../auth/permissions";
 
-/** Wrong witness passwords per acting user. Five misses in 15 minutes stop further tries, so this cannot be used to guess a colleague's password. */
-const witnessMisses = new Map<string, { n: number; reset: number }>();
-const WITNESS_MAX = 5;
-function witnessBlocked(userId: string): boolean {
-  const h = witnessMisses.get(userId);
-  return !!h && h.reset > Date.now() && h.n >= WITNESS_MAX;
-}
-function witnessMiss(userId: string) {
-  const now = Date.now();
-  const h = witnessMisses.get(userId);
-  if (!h || h.reset <= now) witnessMisses.set(userId, { n: 1, reset: now + 15 * 60_000 });
-  else h.n += 1;
-}
 
 export function registerDispensingRoutes(app: Express, pool: pg.Pool) {
   // Dispensing ---------------------------------------------------------------------
@@ -98,20 +85,7 @@ export function registerDispensingRoutes(app: Express, pool: pg.Pool) {
     }
 
     // Controlled medicines need a second person to confirm with their own password.
-    if (lines.some((l: { controlled: boolean }) => l.controlled)) {
-      if (!witness.witnessUserId || !witness.witnessPassword) {
-        throw new HttpError(409, "witness_required", "A controlled medicine needs a second user to confirm.");
-      }
-      if (witness.witnessUserId === user.userId) throw new HttpError(409, "witness_same_user", "The second confirmation must come from a different user.");
-      if (witnessBlocked(user.userId)) throw new HttpError(429, "witness_locked", "Too many wrong confirmations. Try again in a few minutes.");
-      const w = (await c.query("select password_hash, role, active from users where id = $1", [witness.witnessUserId])).rows[0];
-      if (!w || !w.active || !["admin", "inventory_manager", "pharmacist", "vet"].includes(w.role)
-          || !(await verifyPassword(w.password_hash, witness.witnessPassword))) {
-        witnessMiss(user.userId);
-        throw new HttpError(403, "witness_invalid", "The second user's details are not correct.");
-      }
-      await auditTx(c, user, "dispense.witness", "dispense", id, { witnessUserId: witness.witnessUserId });
-    }
+    if (lines.some((l: { controlled: boolean }) => l.controlled)) await requireWitness(c, user, witness, "dispense", id);
 
     await c.query("delete from dispense_lines where dispense_id = $1", [id]);
     for (const l of lines) {

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Express } from "express";
 import type pg from "pg";
 import { z } from "zod";
+import { requireWitness } from "../dispensing/witness";
 import { auditTx, ensureOwned, HttpError, notFound, route } from "../../http/route";
 import { uuid, qty, reasonText } from "../../http/schemas";
 import { issueFefo } from "../stock/ledger";
@@ -18,12 +19,13 @@ export function registerVialRoutes(app: Express, pool: pg.Pool) {
 
   // Opening a vial takes one sealed unit out of stock. Draws then reduce the open vial only.
   app.post("/api/vials/open", route(pool, "stock.issue", async ({ c, user, req }) => {
-    const b = z.object({ itemId: uuid, storeId: uuid }).parse(req.body);
+    const b = z.object({ itemId: uuid, storeId: uuid, witnessUserId: uuid.optional(), witnessPassword: z.string().max(200).optional() }).parse(req.body);
     await ensureOwned(c, "items", [b.itemId]);
     await ensureOwned(c, "stores", [b.storeId]);
-    const item = (await c.query("select multi_dose, dose_volume_ml, beyond_use_days from items where id = $1", [b.itemId])).rows[0];
+    const item = (await c.query("select multi_dose, controlled, dose_volume_ml, beyond_use_days from items where id = $1", [b.itemId])).rows[0];
     if (!item?.multi_dose || !item.dose_volume_ml) throw new HttpError(409, "not_multi_dose", "This item is not set up as a multi-dose container.");
     const vialId = randomUUID();
+    if (item.controlled) await requireWitness(c, user, b, "vial", vialId);
     const plan = await issueFefo(c, {
       tenantId: user.tenantId, type: "issue", itemId: b.itemId, storeId: b.storeId, quantity: 1, userId: user.userId,
       reason: "Opened multi-dose vial", reference: `vial:${vialId}`, idempotencyKey: `vial:${vialId}`,

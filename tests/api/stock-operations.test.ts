@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createTenant } from "../helpers";
-import { harness } from "../harness";
+import { harness, PW } from "../harness";
 
 const h = harness();
 beforeAll(async () => { await h.init(); });
@@ -173,3 +173,32 @@ describe("tenant isolation for stock operations", () => {
     expect(other.tenantId).toBeTruthy();
   });
 });
+
+describe("controlled medicines need a second person", () => {
+  it("opening a controlled vial needs a different user's password; plain issue and return are refused", async () => {
+    const w = await h.stocked({ qty: 5, multiDose: true });
+    await h.admin.query("update items set controlled = true where id = $1", [w.item.id]);
+    const witness = await h.mkUser(w.f, "vet");
+    const open = (body: object) => w.pharm.call("POST", "/api/vials/open", { itemId: w.item.id, storeId: w.f.storeId, ...body });
+
+    expect((await open({})).json.error.code).toBe("witness_required");
+    expect((await open({ witnessUserId: w.pharm.userId, witnessPassword: PW })).json.error.code).toBe("witness_same_user");
+    expect((await open({ witnessUserId: witness.id, witnessPassword: "wrong-password-1" })).json.error.code).toBe("witness_invalid");
+    expect(await h.balance(w.item.id, w.f.storeId)).toBe(5);                       // nothing was taken
+    expect((await open({ witnessUserId: witness.id, witnessPassword: PW })).status).toBe(201);
+    expect(await h.balance(w.item.id, w.f.storeId)).toBe(4);
+
+    const issue = await w.pharm.call("POST", "/api/stock/issue", { itemId: w.item.id, storeId: w.f.storeId, quantity: 1, reason: "Theatre use" });
+    expect(issue.json.error.code).toBe("controlled_item");
+  });
+
+  it("stops guessing a colleague's password after five wrong tries", async () => {
+    const w = await h.stocked({ qty: 5, multiDose: true });
+    await h.admin.query("update items set controlled = true where id = $1", [w.item.id]);
+    const witness = await h.mkUser(w.f, "vet");
+    const open = (pw: string) => w.pharm.call("POST", "/api/vials/open", { itemId: w.item.id, storeId: w.f.storeId, witnessUserId: witness.id, witnessPassword: pw });
+    for (let i = 0; i < 5; i++) expect((await open(`wrong-guess-${i}`)).json.error.code).toBe("witness_invalid");
+    expect((await open(PW)).status, "even the right password is refused once locked").toBe(429);
+  });
+});
+

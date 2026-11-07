@@ -240,7 +240,10 @@ export async function seedDemo(opts: SeedOptions) {
     await pharm.call("POST", `/api/dispenses/${d4.id}/confirm`, {});
 
     // An open ketamine vial with doses drawn for a patient, and a surgery issue.
-    const vial = await pharm.call("POST", "/api/vials/open", { itemId: item("Ketamine", "50 mg/ml"), storeId: mainRx });
+    // Ketamine is controlled, so opening its vial needs a second person (here, a vet) to confirm.
+    const witnesses = (await pharm.call("GET", "/api/users/witnesses")) as unknown as Array<{ id: string; name: string }>;
+    const witness = witnesses.find(w => w.name.includes("Sharma")) ?? witnesses[0];
+    const vial = await pharm.call("POST", "/api/vials/open", { itemId: item("Ketamine", "50 mg/ml"), storeId: mainRx, witnessUserId: witness.id, witnessPassword: DEMO_PASSWORD });
     await pharm.call("POST", `/api/vials/${vial.id}/draw`, { ml: 1.5, animalId: bruno.id });
     const surgery = (await mgr.call("GET", "/api/departments") as Array<{ id: string; name: string }>).find(d => d.name === "Surgery")!;
     await pharm.call("POST", "/api/stock/issue", { itemId: item("Normal Saline 0.9%", "500 ml"), storeId: mainRx, quantity: 6, departmentId: surgery.id, reason: "Surgery list" });

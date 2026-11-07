@@ -3,6 +3,7 @@ import { Droplet, Loader2, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { api, errorMessage } from "@/api/client";
+import { WitnessFields } from "@/features/dispensing/components";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import { DataTable } from "@/components/common/DataTable";
 import { NativeSelect, TextField } from "@/components/common/Fields";
@@ -28,7 +29,7 @@ function useVialAction() {
   const qc = useQueryClient();
   const done = () => { invalidate(); void qc.invalidateQueries({ queryKey: ["vials"] }); };
   return {
-    open: useMutation({ mutationFn: (b: { itemId: string; storeId: string }) => api.post<Vial>("/api/vials/open", b), onSuccess: done }),
+    open: useMutation({ mutationFn: (b: { itemId: string; storeId: string; witnessUserId?: string; witnessPassword?: string }) => api.post<Vial>("/api/vials/open", b), onSuccess: done }),
     draw: useMutation({ mutationFn: (b: { id: string; ml: number; animalId: string }) => api.post<Vial>(`/api/vials/${b.id}/draw`, { ml: b.ml, animalId: b.animalId }), onSuccess: done }),
     discard: useMutation({ mutationFn: (b: { id: string; reason: string }) => api.post(`/api/vials/${b.id}/discard`, { reason: b.reason }), onSuccess: done }),
   };
@@ -69,19 +70,21 @@ function OpenVialDialog({ open, onClose }: { open: boolean; onClose: () => void 
   const stores = useStores();
   const [item, setItem] = useState<Item | null>(null);
   const [storeId, setStoreId] = useState("");
+  const [witness, setWitness] = useState({ witnessId: "", password: "" });
   const [error, setError] = useState<string | null>(null);
   const usable = (stores.data ?? []).filter(s => s.kind !== "transit" && s.active);
   const go = async () => {
     setError(null);
-    try { await openVial.mutateAsync({ itemId: item!.id, storeId: storeId || usable.find(s => s.kind === "branch")?.id || usable[0].id }); toast.success("Vial opened. One sealed vial was taken from stock."); setItem(null); onClose(); } catch (e) { setError(errorMessage(e)); }
+    try { await openVial.mutateAsync({ itemId: item!.id, storeId: storeId || usable.find(s => s.kind === "branch")?.id || usable[0].id, ...(item!.controlled ? { witnessUserId: witness.witnessId, witnessPassword: witness.password } : {}) }); setWitness({ witnessId: "", password: "" }); toast.success("Vial opened. One sealed vial was taken from stock."); setItem(null); onClose(); } catch (e) { setError(errorMessage(e)); }
   };
   return (
     <ResponsiveDialog open={open} onOpenChange={o => { if (!o) { setItem(null); onClose(); } }} title="Open a vial" description="Takes one sealed vial out of stock. Doses are then drawn from the open vial.">
       <div className="space-y-4">
         <NativeSelect label="Take it from" value={storeId || usable.find(s => s.kind === "branch")?.id || usable[0]?.id || ""} onChange={e => setStoreId(e.target.value)}>{usable.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</NativeSelect>
         {item ? <div className="flex items-center justify-between rounded-md border border-border bg-tint/50 p-3"><span className="font-medium">{itemLabel(item)}</span><Button variant="ghost" size="sm" onClick={() => setItem(null)}>Change</Button></div> : <ItemPicker autoFocus onPick={i => (i.multiDose ? setItem(i) : toast.error(`${itemLabel(i)} is not set up as a multi-dose container.`))} placeholder="Search for the multi-dose item" />}
+        {item?.controlled && <WitnessFields witnessId={witness.witnessId} password={witness.password} onChange={setWitness} />}
         {error && <p role="alert" className="rounded-md bg-danger-tint px-3 py-2 text-sm text-danger">{error}</p>}
-        <DialogActions><Button variant="secondary" onClick={onClose}>Cancel</Button><Button disabled={!item || openVial.isPending} onClick={() => void go()}>{openVial.isPending && <Loader2 className="animate-spin" />}Open vial</Button></DialogActions>
+        <DialogActions><Button variant="secondary" onClick={onClose}>Cancel</Button><Button disabled={!item || openVial.isPending || (!!item.controlled && (!witness.witnessId || !witness.password))} onClick={() => void go()}>{openVial.isPending && <Loader2 className="animate-spin" />}Open vial</Button></DialogActions>
       </div>
     </ResponsiveDialog>
   );

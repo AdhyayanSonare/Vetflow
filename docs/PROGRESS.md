@@ -6,8 +6,8 @@ Only things that were run are listed as working. Last updated 2026-11-07, branch
 
 | Gate | Result |
 |---|---|
-| `pnpm check` (types, lint, tests) | pass: 28 test files, 231 tests against a real PostgreSQL |
-| Browser tests, phone 375 / tablet 768 / desktop 1280 | 101 of 101 pass (full run: 100 passed, then the one phone failure was a test selector bug picking a hidden duplicate; fixed and the workflow specs re-run green at all three sizes). Not covered in a browser: transfers, counts, orders, vials, import |
+| `pnpm check` (types, lint, tests) | pass: 28 test files, 233 tests against a real PostgreSQL |
+| Browser tests, phone 375 / tablet 768 / desktop 1280 | 101 of 101 pass (re-run after the vial witness change) (full run: 100 passed, then the one phone failure was a test selector bug picking a hidden duplicate; fixed and the workflow specs re-run green at all three sizes). Not covered in a browser: transfers, counts, orders, vials, import |
 | Fresh clone (clean `git clone`, install from lockfile, `pnpm check`, `pnpm demo`) | pass at a short path: install 5 s, check 114 s, demo healthy 21 s |
 | Item search, 10,000 items | p50 114 ms, **p95 178 ms** (gate 300 ms), through the real API with row-level security |
 | Dashboard, 500,000 ledger rows | median 1.14 s, max 1.17 s (gate 2 s). Margin is thin: it scans the ledger, so about 1M rows would breach |
@@ -32,12 +32,12 @@ Also fixed (migration 0012, `db:seed`, start-up warnings):
 - `pnpm db:seed` refuses a non-local database without `--allow-remote`. Starting in production with insecure cookies, or without NODE_ENV, logs a warning. (Not fixed: `pnpm demo` still listens on all interfaces on purpose, so phones on the same Wi-Fi can reach it; it uses a public password, so never run it on an untrusted network.)
 
 Open, in order of importance:
-1. HIGH (narrowed): plain issue and return now refuse controlled items. Still missing a second-person step: opening a controlled multi-dose vial (kept allowed because the demo and real practice use ketamine vials, so it needs a witness field, not a block) and transfers of controlled stock.
+1. MEDIUM (narrowed from HIGH): plain issue and return refuse controlled items, and opening a controlled vial now needs a second person (shared `requireWitness`, attempt-limited, tested, with witness fields in the vial dialog). Still without a second-person step: transfers of controlled stock between stores.
 2. MEDIUM: lockout returns 423 vs 401 (account-existence oracle and lock-out DoS); no per-IP cap on sign-in; email not trimmed in limiter key.
 3. MEDIUM: over-dispensing race (two parallel confirms) and uncapped lines with no quantity; a receipt can reprice an existing batch; anonymous large-body buffering; a crafted .xlsx can exhaust memory.
 4. LOW: CI permissions and pinned images, backup passes the DB password on the command line and runs as root, no self-service password change, audit gaps on return, and others in the review.
 
-Do not call the system production-hardened until item 1 is done.
+Controlled-stock transfers and the other open items remain; judge hardening against that list.
 
 ## Built and verified
 
